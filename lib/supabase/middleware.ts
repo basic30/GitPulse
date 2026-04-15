@@ -6,9 +6,19 @@ export async function updateSession(request: NextRequest) {
     request,
   })
 
+  // Check if Supabase env vars are available
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    // If env vars are missing, just pass through without auth checks
+    console.warn('[v0] Supabase environment variables not configured')
+    return supabaseResponse
+  }
+
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       cookies: {
         getAll() {
@@ -29,27 +39,36 @@ export async function updateSession(request: NextRequest) {
     },
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
-  // Protect dashboard and analyze routes
-  if (
-    (request.nextUrl.pathname.startsWith('/dashboard') ||
-      request.nextUrl.pathname.startsWith('/analyze') ||
-      request.nextUrl.pathname.startsWith('/report')) &&
-    !user
-  ) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/auth/login'
-    return NextResponse.redirect(url)
-  }
+    // Protect dashboard and analyze routes
+    if (
+      (request.nextUrl.pathname.startsWith('/dashboard') ||
+        request.nextUrl.pathname.startsWith('/analyze') ||
+        request.nextUrl.pathname.startsWith('/report')) &&
+      !user
+    ) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/auth/login'
+      return NextResponse.redirect(url)
+    }
 
-  // Redirect logged-in users away from auth pages
-  if (request.nextUrl.pathname.startsWith('/auth') && user) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
-    return NextResponse.redirect(url)
+    // Redirect logged-in users away from auth pages (but not callback)
+    if (
+      request.nextUrl.pathname.startsWith('/auth') &&
+      !request.nextUrl.pathname.includes('/callback') &&
+      user
+    ) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/dashboard'
+      return NextResponse.redirect(url)
+    }
+  } catch (error) {
+    console.error('[v0] Middleware auth error:', error)
+    // On error, allow the request to continue
   }
 
   return supabaseResponse

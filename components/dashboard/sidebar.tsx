@@ -10,7 +10,9 @@ import {
   Sparkles,
   ChevronLeft,
   ChevronRight,
+  LogOut,
 } from "lucide-react"
+import { signOut } from "@/lib/auth/actions"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
@@ -160,6 +162,20 @@ export function Sidebar({ user }: SidebarProps) {
             </motion.div>
           )}
         </div>
+        
+        {/* Logout Button */}
+        <form action={signOut}>
+          <button
+            type="submit"
+            className={cn(
+              "mt-2 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive",
+              isCollapsed && "justify-center px-2"
+            )}
+          >
+            <LogOut className="h-5 w-5 shrink-0" />
+            {!isCollapsed && <span>Sign Out</span>}
+          </button>
+        </form>
       </div>
     </motion.aside>
   )

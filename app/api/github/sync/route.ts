@@ -24,19 +24,38 @@ export async function POST() {
     }
 
     // Get user's profile with GitHub token
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("github_access_token")
       .eq("id", user.id)
       .single()
 
-    // Use provider token from user metadata or profile
+    if (profileError) {
+      console.error("[v0] Profile fetch error:", profileError)
+    }
+
+    // Try multiple sources for the GitHub token
+    // 1. From profile table (stored during callback)
+    // 2. From user app_metadata (some Supabase configs store it here)
+    // 3. From user user_metadata
     const githubToken = profile?.github_access_token || 
+      user.app_metadata?.provider_token ||
       user.user_metadata?.provider_token
+
+    console.log("[v0] Token sources - Profile:", !!profile?.github_access_token, 
+      "App metadata:", !!user.app_metadata?.provider_token,
+      "User metadata:", !!user.user_metadata?.provider_token)
 
     if (!githubToken) {
       return NextResponse.json(
-        { error: "GitHub token not found. Please re-authenticate." },
+        { 
+          error: "GitHub token not found. Please sign out and sign in again with GitHub.",
+          debug: {
+            hasProfile: !!profile,
+            hasAppMetaToken: !!user.app_metadata?.provider_token,
+            hasUserMetaToken: !!user.user_metadata?.provider_token
+          }
+        },
         { status: 401 }
       )
     }
