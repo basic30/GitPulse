@@ -223,7 +223,7 @@ Be specific about file paths and line numbers. Provide actionable fixes.`
 
     // Call Gemini 3.1 Flash Lite for analysis
     const result = await generateText({
-      model: google("gemini-3.1-flash-lite"),
+      model: google("Gemini 2.5 Flash Lite"),
       prompt,
       output: Output.object({ schema: AnalysisResultSchema }),
     })
