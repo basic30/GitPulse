@@ -1,8 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
-import { generateText, Output } from "ai"
-import { google } from "@ai-sdk/google"
 import { z } from "zod"
+import OpenRouter from "@openrouter/ai-sdk-provider"
 
 const IssueSchema = z.object({
   category: z.enum(["dead_code", "zombie_dependency", "unused_import", "duplicate", "risky_pattern"]),
@@ -198,19 +197,51 @@ export async function POST(request: Request) {
       .map(f => `--- ${f.path} ---\n${f.content.slice(0, 5000)}`)
       .join("\n\n")
 
-    const prompt = `You are an expert code analyst. Analyze this repository for dead code, unused dependencies, and code quality issues.
+    const systemPrompt = `You are an expert code analyst. You analyze repositories for dead code, unused dependencies, and code quality issues.
+You MUST respond with valid JSON matching this exact structure:
+{
+  "health_score": number (0-100),
+  "dead_code_score": number (0-100),
+  "dependency_score": number (0-100),
+  "complexity_score": number (0-100),
+  "duplication_score": number (0-100),
+  "documentation_score": number (0-100),
+  "ai_summary": "string describing overall code health",
+  "issues": [
+    {
+      "category": "dead_code" | "zombie_dependency" | "unused_import" | "duplicate" | "risky_pattern",
+      "severity": "critical" | "high" | "medium" | "low",
+      "risk_level": "safe" | "verify" | "risky",
+      "title": "Issue title",
+      "description": "Detailed description",
+      "file_path": "path/to/file.ts",
+      "start_line": number or null,
+      "end_line": number or null,
+      "code_snippet": "relevant code" or null,
+      "suggested_fix": "how to fix" or null,
+      "ai_explanation": "Why this is an issue"
+    }
+  ],
+  "deletion_plan": {
+    "phases": [
+      {
+        "name": "Phase name",
+        "badge": "safe" | "bundled" | "dependency" | "verify",
+        "steps": [
+          { "title": "Step title", "rationale": "Why this step" }
+        ]
+      }
+    ]
+  }
+}`
+
+    const userPrompt = `Analyze this repository for dead code, unused dependencies, and code quality issues.
 
 Repository: ${repo.full_name}
 Language: ${repo.language || "Unknown"}
 
 FILES:
 ${codeContext}
-
-Analyze the code and provide:
-1. A health score from 0-100 (100 being perfect)
-2. Sub-scores for dead code, dependencies, complexity, duplication, and documentation
-3. A list of specific issues found with file paths, line numbers, and fixes
-4. A safe deletion plan organized in phases
 
 Focus on:
 - Unused functions, variables, and exports
@@ -219,19 +250,38 @@ Focus on:
 - Duplicate code
 - Risky patterns
 
-Be specific about file paths and line numbers. Provide actionable fixes.`
+Be specific about file paths and line numbers. Provide actionable fixes.
+Respond ONLY with valid JSON matching the structure I specified.`
 
-    // Call Gemini 3.1 Flash Lite for analysis
-    const result = await generateText({
-      model: google("Gemini 2.5 Flash Lite"),
-      prompt,
-      output: Output.object({ schema: AnalysisResultSchema }),
+    // Initialize OpenRouter client
+    const openrouter = OpenRouter({
+      apiKey: process.env.OPENROUTER_API_KEY!,
     })
 
-    const analysis = result.object
+    // Call OpenRouter with GPT model
+    const { generateText } = await import("ai")
+    
+    const result = await generateText({
+      model: openrouter("google/gemini-2.5-flash-preview"),
+      system: systemPrompt,
+      prompt: userPrompt,
+    })
 
-    if (!analysis) {
-      throw new Error("AI analysis returned no results")
+    // Parse the JSON response
+    let analysis
+    try {
+      // Try to extract JSON from the response
+      const responseText = result.text
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/)
+      if (!jsonMatch) {
+        throw new Error("No JSON found in response")
+      }
+      const parsed = JSON.parse(jsonMatch[0])
+      analysis = AnalysisResultSchema.parse(parsed)
+    } catch (parseError) {
+      console.error("Failed to parse AI response:", parseError)
+      console.error("Raw response:", result.text?.slice(0, 500))
+      throw new Error("Failed to parse AI analysis results")
     }
 
     // Update report with results
@@ -298,9 +348,9 @@ Be specific about file paths and line numbers. Provide actionable fixes.`
     const errorMessage = error instanceof Error ? error.message : "Unknown error"
     
     // Check for specific error types
-    if (errorMessage.includes("API key")) {
+    if (errorMessage.includes("API key") || errorMessage.includes("OPENROUTER")) {
       return NextResponse.json(
-        { error: "AI API key not configured. Please add GOOGLE_GENERATIVE_AI_API_KEY to environment variables." },
+        { error: "AI API key not configured. Please add OPENROUTER_API_KEY to environment variables." },
         { status: 500 }
       )
     }
