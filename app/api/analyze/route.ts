@@ -262,7 +262,7 @@ Respond ONLY with valid JSON matching the structure I specified.`
     const { generateText } = await import("ai")
     
     const result = await generateText({
-      model: openrouter("google/gemini-2.5-flash-preview"),
+      model: openrouter("openai/gpt-5.2"),
       system: systemPrompt,
       prompt: userPrompt,
     })
