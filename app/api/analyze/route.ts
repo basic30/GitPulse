@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 import { generateText, Output } from "ai"
+import { google } from "@ai-sdk/google"
 import { z } from "zod"
 
 const IssueSchema = z.object({
@@ -220,14 +221,18 @@ Focus on:
 
 Be specific about file paths and line numbers. Provide actionable fixes.`
 
-    // Call OpenAI for analysis
+    // Call Gemini 3.1 Flash Lite for analysis
     const result = await generateText({
-      model: "openai/gpt-4o-mini",
+      model: google("gemini-3.1-flash-lite"),
       prompt,
       output: Output.object({ schema: AnalysisResultSchema }),
     })
 
     const analysis = result.object
+
+    if (!analysis) {
+      throw new Error("AI analysis returned no results")
+    }
 
     // Update report with results
     const { error: updateError } = await supabase
@@ -289,8 +294,19 @@ Be specific about file paths and line numbers. Provide actionable fixes.`
     })
   } catch (error) {
     console.error("Analysis error:", error)
+    
+    const errorMessage = error instanceof Error ? error.message : "Unknown error"
+    
+    // Check for specific error types
+    if (errorMessage.includes("API key")) {
+      return NextResponse.json(
+        { error: "AI API key not configured. Please add GOOGLE_GENERATIVE_AI_API_KEY to environment variables." },
+        { status: 500 }
+      )
+    }
+    
     return NextResponse.json(
-      { error: "Analysis failed. Please try again." },
+      { error: `Analysis failed: ${errorMessage}` },
       { status: 500 }
     )
   }
