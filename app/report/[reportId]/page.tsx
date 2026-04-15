@@ -1,0 +1,203 @@
+"use client"
+
+import { useParams, useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import useSWR from "swr"
+import { motion } from "framer-motion"
+import { ArrowLeft, Loader2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { HealthScoreHero } from "@/components/report/health-score-hero"
+import { IssueList } from "@/components/report/issue-list"
+import { DeletionPlan } from "@/components/report/deletion-plan"
+import Link from "next/link"
+
+interface Repository {
+  id: string
+  name: string
+  full_name: string
+  language: string | null
+}
+
+interface Report {
+  id: string
+  repository_id: string
+  health_score: number
+  dead_code_score: number | null
+  dependency_score: number | null
+  complexity_score: number | null
+  duplication_score: number | null
+  documentation_score: number | null
+  total_issues: number
+  lines_removable: number
+  zombie_dependencies: number
+  files_affected: number
+  status: string
+  ai_summary: string | null
+  deletion_plan: {
+    phases: Array<{
+      name: string
+      badge: string
+      steps: Array<{ title: string; rationale: string }>
+    }>
+  } | null
+  created_at: string
+  completed_at: string | null
+  repository: Repository
+}
+
+interface Issue {
+  id: string
+  category: string
+  severity: string
+  risk_level: string
+  title: string
+  description: string | null
+  file_path: string
+  start_line: number | null
+  end_line: number | null
+  code_snippet: string | null
+  suggested_fix: string | null
+  ai_explanation: string | null
+}
+
+const fetcher = async (url: string) => {
+  const res = await fetch(url)
+  if (!res.ok) throw new Error("Failed to fetch")
+  return res.json()
+}
+
+export default function ReportPage() {
+  const params = useParams()
+  const router = useRouter()
+  const reportId = params.reportId as string
+
+  const { data, error, isLoading } = useSWR<{ report: Report; issues: Issue[] }>(
+    `/api/reports/${reportId}`,
+    fetcher
+  )
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (error || !data) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-background">
+        <p className="mb-4 text-muted-foreground">Report not found</p>
+        <Button onClick={() => router.push("/dashboard")}>
+          Go to Dashboard
+        </Button>
+      </div>
+    )
+  }
+
+  const { report, issues } = data
+
+  // Transform to component-compatible format
+  const reportData = {
+    id: report.id,
+    repoFullName: report.repository.full_name,
+    healthScore: report.health_score,
+    deadCodeScore: report.dead_code_score ?? 0,
+    dependencyScore: report.dependency_score ?? 0,
+    complexityScore: report.complexity_score ?? 0,
+    duplicationScore: report.duplication_score ?? 0,
+    documentationScore: report.documentation_score ?? 0,
+    totalIssues: report.total_issues,
+    linesRemovable: report.lines_removable,
+    zombieDependencies: report.zombie_dependencies,
+    filesAffected: report.files_affected,
+    aiSummary: report.ai_summary,
+    createdAt: new Date(report.created_at),
+  }
+
+  const issuesData = issues.map((issue) => ({
+    id: issue.id,
+    category: issue.category as "dead_code" | "zombie_dependency" | "unused_import" | "duplicate" | "risky_pattern",
+    severity: issue.severity as "critical" | "high" | "medium" | "low",
+    riskLevel: issue.risk_level as "safe" | "verify" | "risky",
+    title: issue.title,
+    description: issue.description,
+    filePath: issue.file_path,
+    startLine: issue.start_line,
+    endLine: issue.end_line,
+    codeSnippet: issue.code_snippet,
+    suggestedFix: issue.suggested_fix,
+    aiExplanation: issue.ai_explanation,
+  }))
+
+  const deletionSteps = report.deletion_plan?.phases?.flatMap((phase) =>
+    phase.steps.map((step) => ({
+      title: step.title,
+      rationale: step.rationale,
+      phase: phase.name,
+      badge: phase.badge as "safe" | "bundled" | "dependency" | "verify",
+    }))
+  ) || []
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 lg:px-8">
+          <div className="flex items-center gap-4">
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/dashboard">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                <span className="hidden sm:inline">Back to Dashboard</span>
+                <span className="sm:hidden">Back</span>
+              </Link>
+            </Button>
+            <div className="hidden h-6 w-px bg-border sm:block" />
+            <div className="hidden sm:block">
+              <h1 className="text-lg font-semibold">{report.repository.full_name}</h1>
+              <p className="text-sm text-muted-foreground">Analysis Report</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+              <span className="text-sm font-bold text-primary-foreground">G</span>
+            </div>
+            <span className="hidden font-bold sm:inline">GitPulse</span>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content - 70/30 split on desktop */}
+      <main className="mx-auto max-w-7xl px-4 py-6 lg:px-8 lg:py-8">
+        <div className="grid gap-6 lg:grid-cols-[1fr_340px] lg:gap-8">
+          {/* Left Column - Main Content (~70%) */}
+          <div className="space-y-6">
+            <HealthScoreHero report={reportData} />
+            <IssueList issues={issuesData} />
+          </div>
+
+          {/* Right Column - Deletion Plan (~30%) */}
+          <div className="hidden lg:block">
+            <div className="sticky top-24">
+              <DeletionPlan steps={deletionSteps} reportId={reportId} />
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {/* Mobile: Deletion Plan is a floating button + bottom sheet */}
+      <div className="lg:hidden">
+        <DeletionPlan steps={deletionSteps} reportId={reportId} />
+      </div>
+
+      {/* Footer */}
+      <footer className="mt-16 border-t border-border py-8 pb-24 lg:pb-8">
+        <div className="mx-auto max-w-7xl px-4 lg:px-8">
+          <p className="text-center text-sm text-muted-foreground">
+            Report generated by GitPulse · {reportData.createdAt.toLocaleDateString()}
+          </p>
+        </div>
+      </footer>
+    </div>
+  )
+}
