@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 import { z } from "zod"
-import { createOpenRouter } from "@openrouter/ai-sdk-provider"
+import { google } from "@ai-sdk/google"
 
 const IssueSchema = z.object({
   category: z.enum(["dead_code", "zombie_dependency", "unused_import", "duplicate", "risky_pattern"]),
@@ -253,16 +253,13 @@ Focus on:
 Be specific about file paths and line numbers. Provide actionable fixes.
 Respond ONLY with valid JSON matching the structure I specified.`
 
-    // Initialize OpenRouter client
-    const openrouter = createOpenRouter({
-      apiKey: process.env.OPENROUTER_API_KEY!,
-    })
 
     // Call OpenRouter with GPT model
     const { generateText } = await import("ai")
     
     const result = await generateText({
-      model: openrouter("openai/gpt-5.2"),
+      // Using Gemini 2.5 Flash (or you can use 'gemini-1.5-flash')
+      model: google("gemini-2.5-flash"),
       system: systemPrompt,
       prompt: userPrompt,
     })
