@@ -97,46 +97,92 @@ export default function ReportPage() {
 
   const { report, issues } = data
 
-  // Transform to component-compatible format
+  // Transform to component-compatible format matching Report type from lib/types.ts
   const reportData = {
     id: report.id,
+    analysisId: report.id,
     repoFullName: report.repository.full_name,
+    language: report.repository.language ? [report.repository.language] : ["Unknown"],
+    fileCount: report.files_affected || 0,
     healthScore: report.health_score,
-    deadCodeScore: report.dead_code_score ?? 0,
-    dependencyScore: report.dependency_score ?? 0,
-    complexityScore: report.complexity_score ?? 0,
-    duplicationScore: report.duplication_score ?? 0,
-    documentationScore: report.documentation_score ?? 0,
+    subScores: [
+      { name: "Dead Code Detection", score: report.dead_code_score ?? 0, weight: 25 },
+      { name: "Dependency Health", score: report.dependency_score ?? 0, weight: 25 },
+      { name: "Code Complexity", score: report.complexity_score ?? 0, weight: 20 },
+      { name: "Duplication", score: report.duplication_score ?? 0, weight: 15 },
+      { name: "Documentation", score: report.documentation_score ?? 0, weight: 15 },
+    ],
+    issues: [],
     totalIssues: report.total_issues,
     linesRemovable: report.lines_removable,
     zombieDependencies: report.zombie_dependencies,
-    filesAffected: report.files_affected,
-    aiSummary: report.ai_summary,
+    deletionPlan: [],
     createdAt: new Date(report.created_at),
+    githubUrl: `https://github.com/${report.repository.full_name}`,
+  }
+
+  // Map database category values to lib/types.ts IssueCategory values
+  const categoryMap: Record<string, string> = {
+    "dead_code": "dead-code",
+    "zombie_dependency": "zombie-deps",
+    "unused_import": "unused-imports",
+    "duplicate": "duplicate-code",
+    "risky_pattern": "risky",
+  }
+
+  // Map risk_level values to lib/types.ts IssueRisk values
+  const riskMap: Record<string, string> = {
+    "safe": "safe",
+    "verify": "needs-verification",
+    "risky": "risky",
   }
 
   const issuesData = issues.map((issue) => ({
     id: issue.id,
-    category: issue.category as "dead_code" | "zombie_dependency" | "unused_import" | "duplicate" | "risky_pattern",
-    severity: issue.severity as "critical" | "high" | "medium" | "low",
-    riskLevel: issue.risk_level as "safe" | "verify" | "risky",
     title: issue.title,
-    description: issue.description,
     filePath: issue.file_path,
-    startLine: issue.start_line,
-    endLine: issue.end_line,
-    codeSnippet: issue.code_snippet,
-    suggestedFix: issue.suggested_fix,
-    aiExplanation: issue.ai_explanation,
+    lineStart: issue.start_line ?? 1,
+    lineEnd: issue.end_line ?? issue.start_line ?? 1,
+    category: categoryMap[issue.category] || "dead-code",
+    severity: issue.severity as "critical" | "high" | "medium" | "low",
+    risk: riskMap[issue.risk_level] || "safe",
+    aiExplanation: issue.ai_explanation || issue.description || "No explanation available",
+    codeSnippet: issue.code_snippet || "",
+    fixSuggestion: issue.suggested_fix ? {
+      before: issue.code_snippet || "",
+      after: issue.suggested_fix,
+    } : undefined,
   }))
 
+  // Map phase badge to phase number (1-4)
+  const phaseNumberMap: Record<string, 1 | 2 | 3 | 4> = {
+    "safe": 1,
+    "bundled": 2,
+    "dependency": 3,
+    "verify": 4,
+  }
+
+  const phaseLabelMap: Record<string, string> = {
+    "safe": "Safe Deletes",
+    "bundled": "Bundled Removals",
+    "dependency": "Dependency Cleanup",
+    "verify": "Needs Verification",
+  }
+
+  let stepCounter = 0
   const deletionSteps = report.deletion_plan?.phases?.flatMap((phase) =>
-    phase.steps.map((step) => ({
-      title: step.title,
-      rationale: step.rationale,
-      phase: phase.name,
-      badge: phase.badge as "safe" | "bundled" | "dependency" | "verify",
-    }))
+    phase.steps.map((step) => {
+      stepCounter++
+      return {
+        id: `step-${stepCounter}`,
+        phase: phaseNumberMap[phase.badge] || 4,
+        phaseLabel: phaseLabelMap[phase.badge] || phase.name,
+        issueId: `issue-${stepCounter}`,
+        issueTitle: step.title,
+        rationale: step.rationale,
+        completed: false,
+      }
+    })
   ) || []
 
   return (

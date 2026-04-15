@@ -5,6 +5,9 @@ import { ExternalLink, Download, FileJson, Share2, AlertTriangle, Trash2, Packag
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import type { Report } from "@/lib/types"
+
+// Helper to safely access report properties
+type ReportData = Report & { filesAffected?: number }
 import { useEffect } from "react"
 import {
   RadialBarChart,
@@ -14,7 +17,7 @@ import {
 } from "recharts"
 
 interface HealthScoreHeroProps {
-  report: Report
+  report: ReportData
 }
 
 export function HealthScoreHero({ report }: HealthScoreHeroProps) {
@@ -64,7 +67,7 @@ export function HealthScoreHero({ report }: HealthScoreHeroProps) {
     },
     {
       label: "Files Affected",
-      value: report.fileCount,
+      value: report.fileCount || report.filesAffected || 0,
       icon: FileText,
       color: "text-muted-foreground",
     },
