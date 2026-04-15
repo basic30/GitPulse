@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 import { z } from "zod"
-import OpenRouter from "@openrouter/ai-sdk-provider"
+import { createOpenRouter } from "@openrouter/ai-sdk-provider"
 
 const IssueSchema = z.object({
   category: z.enum(["dead_code", "zombie_dependency", "unused_import", "duplicate", "risky_pattern"]),
@@ -254,7 +254,7 @@ Be specific about file paths and line numbers. Provide actionable fixes.
 Respond ONLY with valid JSON matching the structure I specified.`
 
     // Initialize OpenRouter client
-    const openrouter = OpenRouter({
+    const openrouter = createOpenRouter({
       apiKey: process.env.OPENROUTER_API_KEY!,
     })
 
