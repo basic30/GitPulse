@@ -80,11 +80,10 @@ export default function SettingsPage() {
     if (!confirmed) return
 
     setIsSaving(true)
-    let shouldSignOut = false // Track success to safely redirect later
+    let accountDeleted = false
 
     try {
-      // Call the secure server-side route to delete the user
-      // Make sure you created app/api/auth/delete-account/route.ts!
+      // 1. Delete the user via our secure API
       const response = await fetch('/api/auth/delete-account', {
         method: 'DELETE',
       })
@@ -94,8 +93,7 @@ export default function SettingsPage() {
         throw new Error(data.error || 'Failed to delete account')
       }
 
-      // Flag that deletion succeeded
-      shouldSignOut = true 
+      accountDeleted = true 
       
     } catch (error: any) {
       console.error("Error deleting account:", error)
@@ -103,9 +101,18 @@ export default function SettingsPage() {
       setIsSaving(false)
     }
 
-    // Call signOut OUTSIDE the try/catch block so Next.js can handle the redirect properly
-    if (shouldSignOut) {
-      await signOut()
+    // 2. Handle the redirect safely
+    if (accountDeleted) {
+      try {
+        // Attempt to clear session cookies
+        await signOut()
+      } catch (e) {
+        // Ignore any errors here. Supabase throws an error because 
+        // the user was JUST deleted, so their session is technically invalid.
+      } finally {
+        // Force a hard redirect to the home page to clear all React state
+        window.location.href = '/'
+      }
     }
   }
 
