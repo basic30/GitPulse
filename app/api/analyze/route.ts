@@ -168,7 +168,11 @@ export async function POST(request: Request) {
     const filesToCheck: GitHubFile[] = [...rootContents]
     const checkedDirs = new Set<string>()
 
-    while (filesToCheck.length > 0 && codeFiles.length < 50) {
+    // TOKEN SAVER: Ignore massive lockfiles and generated files
+    const IGNORE_FILES = ["package-lock.json", "yarn.lock", "pnpm-lock.yaml", "next-env.d.ts", "components.json"]
+
+    // TOKEN SAVER: Limit to max 15 files instead of 50
+    while (filesToCheck.length > 0 && codeFiles.length < 15) {
       const file = filesToCheck.shift()!
       
       if (file.type === "dir" && !checkedDirs.has(file.path)) {
@@ -180,12 +184,16 @@ export async function POST(request: Request) {
         const dirContents = await fetchRepoContents(githubToken, owner, repoName, file.path)
         filesToCheck.push(...dirContents)
       } else if (file.type === "file") {
+        // TOKEN SAVER: Skip ignored files
+        if (IGNORE_FILES.includes(file.name)) continue;
+
         const isCodeFile = CODE_EXTENSIONS.some(ext => file.name.endsWith(ext))
         const isConfigFile = CONFIG_FILES.includes(file.name)
         
         if (isCodeFile || isConfigFile) {
           const content = await fetchFileContent(githubToken, owner, repoName, file.path)
-          if (content && content.length < 50000) {
+          // TOKEN SAVER: Only fetch files smaller than 20,000 chars instead of 50,000
+          if (content && content.length < 20000) {
             codeFiles.push({ path: file.path, content })
           }
         }
@@ -194,7 +202,8 @@ export async function POST(request: Request) {
 
     // Build prompt for AI analysis
     const codeContext = codeFiles
-      .map(f => `--- ${f.path} ---\n${f.content.slice(0, 5000)}`)
+      // TOKEN SAVER: Slice at 2500 characters instead of 5000 per file
+      .map(f => `--- ${f.path} ---\n${f.content.slice(0, 2500)}`)
       .join("\n\n")
 
     const systemPrompt = `You are an expert code analyst. You analyze repositories for dead code, unused dependencies, and code quality issues.
@@ -267,7 +276,7 @@ Respond ONLY with valid JSON matching the structure I specified.`
       ],
       model: "qwen/qwen3-32b",
       temperature: 0.6,
-      max_completion_tokens: 4096,
+      max_completion_tokens: 3000,
       top_p: 0.95,
       stream: false, // Must be false so we can parse the entire JSON at once
       reasoning_effort: "default",
