@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 import { z } from "zod"
-import { google } from "@ai-sdk/google"
+import Groq from "groq-sdk" // Imported Groq
 
 const IssueSchema = z.object({
   category: z.enum(["dead_code", "zombie_dependency", "unused_import", "duplicate", "risky_pattern"]),
@@ -254,21 +254,31 @@ Be specific about file paths and line numbers. Provide actionable fixes.
 Respond ONLY with valid JSON matching the structure I specified.`
 
 
-    // Call OpenRouter with GPT model
-    const { generateText } = await import("ai")
-    
-    const result = await generateText({
-      // Using Gemini 2.5 Flash (or you can use 'gemini-1.5-flash')
-      model: google("gemini-2.5-flash"),
-      system: systemPrompt,
-      prompt: userPrompt,
-    })
+    // Initialize Groq
+    const groq = new Groq({
+      apiKey: process.env.GROQ_API_KEY
+    });
+
+    // Call Groq API
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
+      model: "qwen/qwen3-32b",
+      temperature: 0.6,
+      max_completion_tokens: 4096,
+      top_p: 0.95,
+      stream: false, // Must be false so we can parse the entire JSON at once
+      reasoning_effort: "default",
+    });
+
+    const responseText = chatCompletion.choices[0]?.message?.content || "";
 
     // Parse the JSON response
     let analysis
     try {
       // Try to extract JSON from the response
-      const responseText = result.text
       const jsonMatch = responseText.match(/\{[\s\S]*\}/)
       if (!jsonMatch) {
         throw new Error("No JSON found in response")
@@ -277,7 +287,7 @@ Respond ONLY with valid JSON matching the structure I specified.`
       analysis = AnalysisResultSchema.parse(parsed)
     } catch (parseError) {
       console.error("Failed to parse AI response:", parseError)
-      console.error("Raw response:", result.text?.slice(0, 500))
+      console.error("Raw response:", responseText.slice(0, 500))
       throw new Error("Failed to parse AI analysis results")
     }
 
@@ -345,9 +355,9 @@ Respond ONLY with valid JSON matching the structure I specified.`
     const errorMessage = error instanceof Error ? error.message : "Unknown error"
     
     // Check for specific error types
-    if (errorMessage.includes("API key") || errorMessage.includes("OPENROUTER")) {
+    if (errorMessage.includes("API key") || errorMessage.includes("GROQ")) {
       return NextResponse.json(
-        { error: "AI API key not configured. Please add OPENROUTER_API_KEY to environment variables." },
+        { error: "AI API key not configured. Please add GROQ_API_KEY to environment variables." },
         { status: 500 }
       )
     }
