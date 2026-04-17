@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { motion } from "framer-motion"
 import {
@@ -46,7 +47,7 @@ export function Sidebar({ user }: SidebarProps) {
         setCollapsed(true)
       }
     }
-    
+
     checkMobile()
     window.addEventListener("resize", checkMobile)
     return () => window.removeEventListener("resize", checkMobile)
@@ -63,9 +64,13 @@ export function Sidebar({ user }: SidebarProps) {
     >
       {/* Logo */}
       <div className="flex h-16 items-center gap-3 border-b border-border px-4">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary">
-          <span className="text-lg font-bold text-primary-foreground">G</span>
-        </div>
+        <Image
+          src="/logo.png"
+          alt="GitPulse Logo"
+          width={32}
+          height={32}
+          className="shrink-0 rounded-md"
+        />
         {!isCollapsed && (
           <motion.span
             initial={{ opacity: 0 }}
@@ -107,7 +112,7 @@ export function Sidebar({ user }: SidebarProps) {
             className="mt-4"
           >
             {/* Fixed: Moved classes directly onto the Link component */}
-            <Link 
+            <Link
               href="/dashboard/upgrade"
               className="flex items-center gap-3 rounded-lg bg-primary/10 px-3 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
             >
@@ -118,7 +123,7 @@ export function Sidebar({ user }: SidebarProps) {
         )}
         {user.plan === "FREE" && isCollapsed && (
           /* Fixed: Moved classes directly onto the Link component */
-          <Link 
+          <Link
             href="/dashboard/upgrade"
             className="mt-4 flex items-center justify-center rounded-lg bg-primary/10 p-2.5 text-primary transition-colors hover:bg-primary/20"
           >
@@ -166,7 +171,7 @@ export function Sidebar({ user }: SidebarProps) {
             </motion.div>
           )}
         </div>
-        
+
         {/* Logout Button */}
         <form action={signOut}>
           <button

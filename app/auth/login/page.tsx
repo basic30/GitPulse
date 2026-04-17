@@ -1,6 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
+import Image from "next/image"
 import { Github, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
@@ -31,9 +32,13 @@ export default function LoginPage() {
         <div className="rounded-2xl border border-border bg-card p-8 shadow-xl">
           {/* Logo */}
           <div className="mb-6 flex items-center justify-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
-              <span className="text-2xl font-bold text-primary-foreground">G</span>
-            </div>
+            <Image
+              src="/logo.png"
+              alt="GitPulse Logo"
+              width={32}
+              height={32}
+              className="rounded-md"
+            />
             <span className="text-2xl font-bold">GitPulse</span>
           </div>
 

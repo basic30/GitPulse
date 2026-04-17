@@ -17,7 +17,6 @@ export const metadata: Metadata = {
   title: "GitPulse - Find Dead Code. Kill Zombie Dependencies. Ship Cleaner Software.",
   description:
     "GitPulse connects to your GitHub and uses AI to find dead code, unused functions, and zombie dependencies — then tells you exactly how to fix it.",
-  generator: "v0.app",
   icons: {
     icon: [
       {

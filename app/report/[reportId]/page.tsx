@@ -1,6 +1,7 @@
 "use client"
 
 import { useParams, useRouter } from "next/navigation"
+import Image from "next/image"
 import useSWR from "swr"
 import { motion } from "framer-motion"
 import { ArrowLeft, Loader2 } from "lucide-react"
@@ -63,7 +64,7 @@ interface Issue {
 // Custom fetcher that handles BOTH Report IDs and Repository IDs
 const fetchReportData = async (id: string) => {
   const supabase = createClient()
-  
+
   // 1. Try to fetch by Report ID (History page behavior)
   let { data: report, error: reportError } = await supabase
     .from("analysis_reports")
@@ -236,9 +237,13 @@ export default function ReportPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <span className="text-sm font-bold text-primary-foreground">G</span>
-            </div>
+            <Image
+              src="/logo.png"
+              alt="GitPulse Logo"
+              width={32}
+              height={32}
+              className="rounded-md"
+            />
             <span className="hidden font-bold sm:inline">GitPulse</span>
           </div>
         </div>
