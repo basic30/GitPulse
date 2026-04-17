@@ -100,7 +100,10 @@ importers:
         version: 1.2.8(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@supabase/ssr':
         specifier: ^0.10.2
-        version: 0.10.2(@supabase/supabase-js@2.103.1)
+        version: 0.10.2(@supabase/supabase-js@2.103.3)
+      '@supabase/supabase-js':
+        specifier: ^2.103.3
+        version: 2.103.3
       '@tanstack/react-virtual':
         specifier: ^3.13.23
         version: 3.13.23(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -1163,23 +1166,23 @@ packages:
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
 
-  '@supabase/auth-js@2.103.1':
-    resolution: {integrity: sha512-HsXbSv6AkX7oBqHmbwtE1oUtK0KiWQmA0KeYoEd4SnsZeSmUOe+mNfEyL3mZbBCdgORJuMDoQX2ofvwayV4tdQ==}
+  '@supabase/auth-js@2.103.3':
+    resolution: {integrity: sha512-SMDJ4vg5jLXNEHdhN4J4ujSb203WangbDw1n3VaARH0ZqM51E6lJnoUAHlpQU9N7SzP0hfgghA9IvT8c7tGRfg==}
     engines: {node: '>=20.0.0'}
 
-  '@supabase/functions-js@2.103.1':
-    resolution: {integrity: sha512-OlKF1YhKO+zlxEXYct9NcLUFUBuChlt4t85lMYhVrdN8y4lJSBG+zUuqMz/ZrnBviKq43+D3DsIgBu+Vjq51vw==}
+  '@supabase/functions-js@2.103.3':
+    resolution: {integrity: sha512-A2ZHi95GIRRlN9LGOSa/zGEIPg9taR1giDI9Gkfkgrcz0YmKV8ShiAplIrKsHQFdkzKxtsO3maJF0efL+i31mg==}
     engines: {node: '>=20.0.0'}
 
   '@supabase/phoenix@0.4.0':
     resolution: {integrity: sha512-RHSx8bHS02xwfHdAbX5Lpbo6PXbgyf7lTaXTlwtFDPwOIw64NnVRwFAXGojHhjtVYI+PEPNSWwkL90f4agN3bw==}
 
-  '@supabase/postgrest-js@2.103.1':
-    resolution: {integrity: sha512-nZaN1eYcTXoZt+UyFp6PtPWJIIEoL4r9UpfbCT4cTRz5q6B6IGltsSfwdNWq15SrXNyYj5NlJKL8UIDkHrFf0g==}
+  '@supabase/postgrest-js@2.103.3':
+    resolution: {integrity: sha512-S0k/9FJVXDeejNfQLCJwRlm4IH8Wet/HEEdBTBpX6/G2o1eU/6CjQop/hJPZIwlQkI6D/zbHH8KymuCsBgy6jA==}
     engines: {node: '>=20.0.0'}
 
-  '@supabase/realtime-js@2.103.1':
-    resolution: {integrity: sha512-JxuM0Gju9WlRkXMU/lSE94Fh+euCzc2xM+R6oaA2xeqJD959L2Ignj0mIvshfhJRglQ2GNJgcdPf1o9Xx48XFw==}
+  '@supabase/realtime-js@2.103.3':
+    resolution: {integrity: sha512-fUvKtSXMUk1BkApVwAurWtHF4Vzbb0UB9aC/fQXrRBek7Ta3Kaora+wHf/fGwFNQs7uRz+mvjIVpzLfpR32VXA==}
     engines: {node: '>=20.0.0'}
 
   '@supabase/ssr@0.10.2':
@@ -1187,12 +1190,12 @@ packages:
     peerDependencies:
       '@supabase/supabase-js': ^2.102.1
 
-  '@supabase/storage-js@2.103.1':
-    resolution: {integrity: sha512-rkbWonWLbfrtVwdVhr9DZI+VV7TVd+j4QlxkPWzepwqx7pWj6bDxOAqTXaQNWR3aPQR6a+zsK1AAc6KGQH1mtA==}
+  '@supabase/storage-js@2.103.3':
+    resolution: {integrity: sha512-5bAIEubrw5keHcdKR2RTois0O1M2Ilx4UYuzOzc07G6mLGCPS/8t1nbC6Vq451pnxR3sK+rmtFHWb9CY/OPjAw==}
     engines: {node: '>=20.0.0'}
 
-  '@supabase/supabase-js@2.103.1':
-    resolution: {integrity: sha512-mFdjUK+Rw6iQnpTvj9KiGdL3sHo/M6SkT+VQ7w2KzQ9u6V5OM503rXShJBH3L/vVT5vz8FzRrNOfTIyIsTxswg==}
+  '@supabase/supabase-js@2.103.3':
+    resolution: {integrity: sha512-DuPiAz5pIJsTAQCt7B6bDZrnLzlq9+/5bta/GWTsgpLn6AkuZQcmYsQHYplv4skQ8U2raKY5HASQOu4KtYq9Qw==}
     engines: {node: '>=20.0.0'}
 
   '@swc/helpers@0.5.15':
@@ -2859,21 +2862,21 @@ snapshots:
 
   '@standard-schema/spec@1.1.0': {}
 
-  '@supabase/auth-js@2.103.1':
+  '@supabase/auth-js@2.103.3':
     dependencies:
       tslib: 2.8.1
 
-  '@supabase/functions-js@2.103.1':
+  '@supabase/functions-js@2.103.3':
     dependencies:
       tslib: 2.8.1
 
   '@supabase/phoenix@0.4.0': {}
 
-  '@supabase/postgrest-js@2.103.1':
+  '@supabase/postgrest-js@2.103.3':
     dependencies:
       tslib: 2.8.1
 
-  '@supabase/realtime-js@2.103.1':
+  '@supabase/realtime-js@2.103.3':
     dependencies:
       '@supabase/phoenix': 0.4.0
       '@types/ws': 8.18.1
@@ -2883,23 +2886,23 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@supabase/ssr@0.10.2(@supabase/supabase-js@2.103.1)':
+  '@supabase/ssr@0.10.2(@supabase/supabase-js@2.103.3)':
     dependencies:
-      '@supabase/supabase-js': 2.103.1
+      '@supabase/supabase-js': 2.103.3
       cookie: 1.1.1
 
-  '@supabase/storage-js@2.103.1':
+  '@supabase/storage-js@2.103.3':
     dependencies:
       iceberg-js: 0.8.1
       tslib: 2.8.1
 
-  '@supabase/supabase-js@2.103.1':
+  '@supabase/supabase-js@2.103.3':
     dependencies:
-      '@supabase/auth-js': 2.103.1
-      '@supabase/functions-js': 2.103.1
-      '@supabase/postgrest-js': 2.103.1
-      '@supabase/realtime-js': 2.103.1
-      '@supabase/storage-js': 2.103.1
+      '@supabase/auth-js': 2.103.3
+      '@supabase/functions-js': 2.103.3
+      '@supabase/postgrest-js': 2.103.3
+      '@supabase/realtime-js': 2.103.3
+      '@supabase/storage-js': 2.103.3
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
