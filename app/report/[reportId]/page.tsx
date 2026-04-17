@@ -1,7 +1,6 @@
 "use client"
 
 import { useParams, useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
 import useSWR from "swr"
 import { motion } from "framer-motion"
 import { ArrowLeft, Loader2 } from "lucide-react"
@@ -10,6 +9,7 @@ import { HealthScoreHero } from "@/components/report/health-score-hero"
 import { IssueList } from "@/components/report/issue-list"
 import { DeletionPlan } from "@/components/report/deletion-plan"
 import Link from "next/link"
+import { createClient } from "@/lib/supabase/client" // Added import
 
 interface Repository {
   id: string
@@ -60,10 +60,44 @@ interface Issue {
   ai_explanation: string | null
 }
 
-const fetcher = async (url: string) => {
-  const res = await fetch(url)
-  if (!res.ok) throw new Error("Failed to fetch")
-  return res.json()
+// Custom fetcher that handles BOTH Report IDs and Repository IDs
+const fetchReportData = async (id: string) => {
+  const supabase = createClient()
+  
+  // 1. Try to fetch by Report ID (History page behavior)
+  let { data: report, error: reportError } = await supabase
+    .from("analysis_reports")
+    .select('*, repository:repositories(id, name, full_name, language)')
+    .eq("id", id)
+    .single()
+
+  // 2. If it fails, assume the ID is a Repository ID (Dashboard page behavior)
+  if (reportError || !report) {
+    const { data: latestReport, error: latestError } = await supabase
+      .from("analysis_reports")
+      .select('*, repository:repositories(id, name, full_name, language)')
+      .eq("repository_id", id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single()
+
+    if (latestError || !latestReport) {
+      throw new Error("Report not found")
+    }
+    report = latestReport
+  }
+
+  // 3. Fetch the associated issues
+  const { data: issues, error: issuesError } = await supabase
+    .from("issues")
+    .select("*")
+    .eq("report_id", report.id)
+
+  if (issuesError) {
+    console.error("Failed to fetch issues:", issuesError)
+  }
+
+  return { report, issues: issues || [] }
 }
 
 export default function ReportPage() {
@@ -72,8 +106,8 @@ export default function ReportPage() {
   const reportId = params.reportId as string
 
   const { data, error, isLoading } = useSWR<{ report: Report; issues: Issue[] }>(
-    `/api/reports/${reportId}`,
-    fetcher
+    reportId,
+    fetchReportData
   )
 
   if (isLoading) {
@@ -87,7 +121,7 @@ export default function ReportPage() {
   if (error || !data) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-background">
-        <p className="mb-4 text-muted-foreground">Report not found</p>
+        <p className="mb-4 text-muted-foreground">Report not found or hasn't been analyzed yet.</p>
         <Button onClick={() => router.push("/dashboard")}>
           Go to Dashboard
         </Button>
@@ -97,7 +131,7 @@ export default function ReportPage() {
 
   const { report, issues } = data
 
-  // Transform to component-compatible format matching Report type from lib/types.ts
+  // Transform to component-compatible format
   const reportData = {
     id: report.id,
     analysisId: report.id,
@@ -121,7 +155,6 @@ export default function ReportPage() {
     githubUrl: `https://github.com/${report.repository.full_name}`,
   }
 
-  // Map database category values to lib/types.ts IssueCategory values
   const categoryMap: Record<string, string> = {
     "dead_code": "dead-code",
     "zombie_dependency": "zombie-deps",
@@ -130,7 +163,6 @@ export default function ReportPage() {
     "risky_pattern": "risky",
   }
 
-  // Map risk_level values to lib/types.ts IssueRisk values
   const riskMap: Record<string, string> = {
     "safe": "safe",
     "verify": "needs-verification",
@@ -154,7 +186,6 @@ export default function ReportPage() {
     } : undefined,
   }))
 
-  // Map phase badge to phase number (1-4)
   const phaseNumberMap: Record<string, 1 | 2 | 3 | 4> = {
     "safe": 1,
     "bundled": 2,
