@@ -2,15 +2,17 @@
 
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { 
   User, 
   Github, 
   Bell, 
   Shield, 
-  CreditCard,
   RefreshCw,
   Check,
-  AlertCircle
+  AlertCircle,
+  ArrowLeft
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -34,6 +36,7 @@ interface Profile {
 }
 
 export default function SettingsPage() {
+  const router = useRouter()
   const [profile, setProfile] = useState<Profile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -70,6 +73,34 @@ export default function SettingsPage() {
     await signOut()
   }
 
+  const handleDeleteAccount = async () => {
+    const confirmed = window.confirm(
+      "Are you sure you want to permanently delete your account? This action cannot be undone."
+    )
+    if (!confirmed) return
+
+    setIsSaving(true)
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (user) {
+        // Delete the profile data
+        await supabase.from("profiles").delete().eq("id", user.id)
+        
+        // Note: To completely delete the user from Supabase Auth, 
+        // you typically need to call this from an Admin API route/Edge function.
+        // For now, this wipes their data and logs them out.
+        await signOut()
+      }
+    } catch (error) {
+      console.error("Error deleting account:", error)
+      alert("There was an error deleting your account.")
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -80,11 +111,23 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold sm:text-3xl">Settings</h1>
-        <p className="mt-1 text-muted-foreground">
-          Manage your account and preferences
-        </p>
+      <div className="flex items-center gap-4">
+        {/* Added Back Button */}
+        <Button 
+          variant="outline" 
+          size="icon" 
+          onClick={() => router.push("/dashboard")}
+          className="h-10 w-10"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span className="sr-only">Back</span>
+        </Button>
+        <div>
+          <h1 className="text-2xl font-bold sm:text-3xl">Settings</h1>
+          <p className="mt-1 text-muted-foreground">
+            Manage your account and preferences
+          </p>
+        </div>
       </div>
 
       <div className="grid gap-6">
@@ -130,9 +173,10 @@ export default function SettingsPage() {
                     <Badge variant={profile?.plan === "PRO" ? "default" : "secondary"}>
                       {profile?.plan || "FREE"}
                     </Badge>
+                    {/* Fixed Upgrade Button Link */}
                     {profile?.plan === "FREE" && (
-                      <Button variant="link" size="sm" className="h-auto p-0">
-                        Upgrade to Pro
+                      <Button variant="link" size="sm" className="h-auto p-0" asChild>
+                        <Link href="/dashboard/upgrade">Upgrade to Pro</Link>
                       </Button>
                     )}
                   </div>
@@ -288,8 +332,14 @@ export default function SettingsPage() {
                     Permanently delete your account and all data
                   </p>
                 </div>
-                <Button variant="destructive" size="sm">
-                  Delete Account
+                {/* Fixed Delete Account Button */}
+                <Button 
+                  variant="destructive" 
+                  size="sm"
+                  onClick={handleDeleteAccount}
+                  disabled={isSaving}
+                >
+                  {isSaving ? "Deleting..." : "Delete Account"}
                 </Button>
               </div>
             </CardContent>
