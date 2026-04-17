@@ -85,7 +85,7 @@ export function RepoCard({ repo, index }: RepoCardProps) {
             {/* Last Commit */}
             <div className="flex items-center gap-1">
               <Clock className="h-4 w-4" />
-              <span>{formatDistanceToNow(repo.lastCommitAt, { addSuffix: true })}</span>
+              <span>{formatDistanceToNow(new Date(repo.lastCommitAt), { addSuffix: true })}</span>
             </div>
           </div>
         </div>
@@ -127,26 +127,39 @@ export function RepoCard({ repo, index }: RepoCardProps) {
       <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
         {repo.lastAnalyzedAt ? (
           <p className="text-xs text-muted-foreground">
-            Last analyzed {formatDistanceToNow(repo.lastAnalyzedAt, { addSuffix: true })}
+            Last analyzed {formatDistanceToNow(new Date(repo.lastAnalyzedAt), { addSuffix: true })}
           </p>
         ) : (
           <p className="text-xs text-muted-foreground">Never analyzed</p>
         )}
 
+        {/* --- THIS IS THE UPDATED SECTION --- */}
         <div className="flex items-center gap-2">
-          {repo.healthScore !== undefined && repo.lastAnalyzedAt && (
+          {/* If the repo has a health score, it means it was analyzed, so show View Report & Re-analyze */}
+          {repo.healthScore !== undefined ? (
+            <>
+              <Button asChild size="sm" variant="default">
+                {/* Note: Uses repo.lastReportId if it exists on your type, otherwise falls back to repo.id */}
+                <Link href={`/report/${(repo as any).lastReportId || repo.id}`}>
+                  View Report
+                </Link>
+              </Button>
+              <Button asChild size="sm" variant="outline">
+                <Link href={`/analyze/${repo.id}`}>
+                  Re-analyze
+                </Link>
+              </Button>
+            </>
+          ) : (
+            /* If no health score, it hasn't been analyzed yet, just show Analyze */
             <Button asChild size="sm" variant="default">
-              <Link href={`/report/${repo.id}`}>
-                View Report
+              <Link href={`/analyze/${repo.id}`}>
+                Analyze
               </Link>
             </Button>
           )}
-          <Button asChild size="sm" variant={repo.healthScore !== undefined ? "outline" : "default"}>
-            <Link href={`/analyze/${repo.id}`}>
-              {repo.healthScore !== undefined ? "Re-analyze" : "Analyze"}
-            </Link>
-          </Button>
         </div>
+        {/* ---------------------------------- */}
       </div>
     </motion.div>
   )

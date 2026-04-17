@@ -106,19 +106,23 @@ export function Sidebar({ user }: SidebarProps) {
             animate={{ opacity: 1 }}
             className="mt-4"
           >
-            <Link href="/dashboard/upgrade">
-              <div className="flex items-center gap-3 rounded-lg bg-primary/10 px-3 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-primary/20">
-                <Sparkles className="h-5 w-5" />
-                <span>Upgrade</span>
-              </div>
+            {/* Fixed: Moved classes directly onto the Link component */}
+            <Link 
+              href="/dashboard/upgrade"
+              className="flex items-center gap-3 rounded-lg bg-primary/10 px-3 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
+            >
+              <Sparkles className="h-5 w-5" />
+              <span>Upgrade</span>
             </Link>
           </motion.div>
         )}
         {user.plan === "FREE" && isCollapsed && (
-          <Link href="/dashboard/upgrade">
-            <div className="flex items-center justify-center rounded-lg bg-primary/10 p-2.5 text-primary transition-colors hover:bg-primary/20">
-              <Sparkles className="h-5 w-5" />
-            </div>
+          /* Fixed: Moved classes directly onto the Link component */
+          <Link 
+            href="/dashboard/upgrade"
+            className="mt-4 flex items-center justify-center rounded-lg bg-primary/10 p-2.5 text-primary transition-colors hover:bg-primary/20"
+          >
+            <Sparkles className="h-5 w-5" />
           </Link>
         )}
       </nav>

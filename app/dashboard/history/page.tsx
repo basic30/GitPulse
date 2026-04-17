@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { format } from "date-fns"
 import { motion } from "framer-motion"
 import { 
@@ -11,7 +12,8 @@ import {
   TrendingDown, 
   Minus,
   Clock,
-  GitBranch
+  GitBranch,
+  ArrowLeft
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -34,30 +36,38 @@ interface AnalysisReport {
 }
 
 export default function HistoryPage() {
+  const router = useRouter()
   const [reports, setReports] = useState<AnalysisReport[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     async function fetchHistory() {
-      const supabase = createClient()
-      
-      const { data, error } = await supabase
-        .from("analysis_reports")
-        .select(`
-          id,
-          health_score,
-          total_issues,
-          status,
-          created_at,
-          repository:repositories(id, name, full_name, language)
-        `)
-        .order("created_at", { ascending: false })
-        .limit(50)
+      try {
+        const supabase = createClient()
+        
+        const { data, error } = await supabase
+          .from("analysis_reports")
+          .select(`
+            id,
+            health_score,
+            total_issues,
+            status,
+            created_at,
+            repository:repositories(id, name, full_name, language)
+          `)
+          .order("created_at", { ascending: false })
+          .limit(50)
 
-      if (!error && data) {
-        setReports(data as unknown as AnalysisReport[])
+        if (error) throw error
+        
+        if (data) {
+          setReports(data as unknown as AnalysisReport[])
+        }
+      } catch (error) {
+        console.error("Failed to load history:", error)
+      } finally {
+        setIsLoading(false)
       }
-      setIsLoading(false)
     }
 
     fetchHistory()
@@ -77,11 +87,23 @@ export default function HistoryPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold sm:text-3xl">Analysis History</h1>
-        <p className="mt-1 text-muted-foreground">
-          View all your past repository analyses
-        </p>
+      <div className="flex items-center gap-4">
+        {/* Added Back Button */}
+        <Button 
+          variant="outline" 
+          size="icon" 
+          onClick={() => router.push("/dashboard")}
+          className="h-10 w-10 shrink-0"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span className="sr-only">Back</span>
+        </Button>
+        <div>
+          <h1 className="text-2xl font-bold sm:text-3xl">Analysis History</h1>
+          <p className="mt-1 text-muted-foreground">
+            View all your past repository analyses
+          </p>
+        </div>
       </div>
 
       {isLoading ? (
@@ -115,12 +137,12 @@ export default function HistoryPage() {
               <Card className="transition-colors hover:bg-card/80">
                 <CardContent className="flex items-center justify-between p-4">
                   <div className="flex items-center gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary/10">
                       <FileText className="h-6 w-6 text-primary" />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="font-semibold">
+                        <h3 className="font-semibold line-clamp-1">
                           {report.repository?.full_name || "Unknown Repository"}
                         </h3>
                         {report.repository?.language && (
@@ -136,8 +158,8 @@ export default function HistoryPage() {
                   </div>
 
                   <div className="flex items-center gap-6">
-                    <div className="text-right">
-                      <div className="flex items-center gap-2">
+                    <div className="text-right hidden sm:block">
+                      <div className="flex items-center justify-end gap-2">
                         {getScoreTrend(report.health_score)}
                         <span className={`text-2xl font-bold ${getScoreColor(report.health_score)}`}>
                           {report.health_score}
@@ -150,8 +172,9 @@ export default function HistoryPage() {
 
                     <Button asChild variant="outline" size="sm">
                       <Link href={`/report/${report.id}`}>
-                        View Report
-                        <ExternalLink className="ml-2 h-4 w-4" />
+                        <span className="hidden sm:inline-block mr-2">View Report</span>
+                        <span className="sm:hidden">View</span>
+                        <ExternalLink className="h-4 w-4" />
                       </Link>
                     </Button>
                   </div>

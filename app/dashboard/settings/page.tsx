@@ -88,9 +88,7 @@ export default function SettingsPage() {
         // Delete the profile data
         await supabase.from("profiles").delete().eq("id", user.id)
         
-        // Note: To completely delete the user from Supabase Auth, 
-        // you typically need to call this from an Admin API route/Edge function.
-        // For now, this wipes their data and logs them out.
+        // Logs the user out after data is deleted
         await signOut()
       }
     } catch (error) {
@@ -112,7 +110,7 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        {/* Added Back Button */}
+        {/* Back Button */}
         <Button 
           variant="outline" 
           size="icon" 
