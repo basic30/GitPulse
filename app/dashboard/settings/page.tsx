@@ -80,22 +80,32 @@ export default function SettingsPage() {
     if (!confirmed) return
 
     setIsSaving(true)
+    let shouldSignOut = false // Track success to safely redirect later
+
     try {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      
-      if (user) {
-        // Delete the profile data
-        await supabase.from("profiles").delete().eq("id", user.id)
-        
-        // Logs the user out after data is deleted
-        await signOut()
+      // Call the secure server-side route to delete the user
+      // Make sure you created app/api/auth/delete-account/route.ts!
+      const response = await fetch('/api/auth/delete-account', {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to delete account')
       }
-    } catch (error) {
+
+      // Flag that deletion succeeded
+      shouldSignOut = true 
+      
+    } catch (error: any) {
       console.error("Error deleting account:", error)
-      alert("There was an error deleting your account.")
-    } finally {
+      alert(error.message || "There was an error deleting your account.")
       setIsSaving(false)
+    }
+
+    // Call signOut OUTSIDE the try/catch block so Next.js can handle the redirect properly
+    if (shouldSignOut) {
+      await signOut()
     }
   }
 
@@ -115,7 +125,7 @@ export default function SettingsPage() {
           variant="outline" 
           size="icon" 
           onClick={() => router.push("/dashboard")}
-          className="h-10 w-10"
+          className="h-10 w-10 shrink-0"
         >
           <ArrowLeft className="h-4 w-4" />
           <span className="sr-only">Back</span>
@@ -171,7 +181,7 @@ export default function SettingsPage() {
                     <Badge variant={profile?.plan === "PRO" ? "default" : "secondary"}>
                       {profile?.plan || "FREE"}
                     </Badge>
-                    {/* Fixed Upgrade Button Link */}
+                    {/* Upgrade Button Link */}
                     {profile?.plan === "FREE" && (
                       <Button variant="link" size="sm" className="h-auto p-0" asChild>
                         <Link href="/dashboard/upgrade">Upgrade to Pro</Link>
@@ -330,7 +340,6 @@ export default function SettingsPage() {
                     Permanently delete your account and all data
                   </p>
                 </div>
-                {/* Fixed Delete Account Button */}
                 <Button 
                   variant="destructive" 
                   size="sm"
