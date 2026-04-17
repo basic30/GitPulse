@@ -2,6 +2,7 @@
 
 import { Github, Twitter, FileText, Shield } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 
 const footerLinks = [
   { label: "GitHub", href: "https://github.com", icon: Github },
@@ -18,9 +19,13 @@ export function Footer() {
           {/* Logo and Tagline */}
           <div className="flex flex-col items-center gap-2 md:items-start">
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                <span className="text-lg font-bold text-primary-foreground">G</span>
-              </div>
+              <Image
+                src="/logo.png"
+                alt="GitPulse Logo"
+                width={32}
+                height={32}
+                className="rounded-md"
+              />
               <span className="text-xl font-bold">GitPulse</span>
             </div>
             <p className="text-sm text-muted-foreground">
