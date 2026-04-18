@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 import { z } from "zod"
-import { puter } from '@heyputer/puter.js'
+// FIXED IMPORT: Using the CommonJS init for Node.js/Vercel server environments
+import { init } from "@heyputer/puter.js/src/init.cjs"
 
 const IssueSchema = z.object({
   category: z.enum(["dead_code", "zombie_dependency", "unused_import", "duplicate", "risky_pattern"]),
@@ -104,6 +105,9 @@ const CONFIG_FILES = [
 
 export async function POST(request: Request) {
   try {
+    // FIXED: Initialize Puter for the server environment using your auth token
+    const puter = init(process.env.PUTER_AUTH_TOKEN)
+
     const supabase = await createClient()
     
     const { data: { user } } = await supabase.auth.getUser()
@@ -247,16 +251,16 @@ Respond ONLY with valid JSON.`
     let analysis;
 
     try {
-      // Attempt AI Analysis via puter.js
-      const chatResponse = await puter.ai.chat(
+      // FIXED: Attempt AI Analysis using the server-initialized puter instance
+      const chatResponse = await puter.chat(
         systemPrompt + "\n\n" + userPrompt, 
-        { model: "gpt-5.4-nano" }
+        { model: "gpt-4o-mini" } // Recommended fallback if gpt-5.4-nano throws an invalid model error
       );
 
-      // Handle the puter response structure
+      // Handle the puter response structure gracefully
       const responseText = typeof chatResponse === 'string' 
         ? chatResponse 
-        : (chatResponse as any)?.message || JSON.stringify(chatResponse);
+        : (chatResponse as any)?.message?.content || JSON.stringify(chatResponse);
 
       const jsonMatch = responseText.match(/\{[\s\S]*\}/)
       if (!jsonMatch) {
