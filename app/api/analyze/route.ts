@@ -102,122 +102,6 @@ const CONFIG_FILES = [
   "pom.xml", "build.gradle", "Gemfile", "composer.json"
 ]
 
-// --- FALLBACK CHECKER (Runs if AI fails) ---
-function runStaticAnalysisFallback(codeFiles: { path: string; content: string }[]) {
-  const issues: any[] = [];
-  let healthScore = 95;
-
-  // 1. Check for Package.json to find Zombie Dependencies
-  const packageJsonFile = codeFiles.find(f => f.path.endsWith("package.json"));
-  if (packageJsonFile) {
-    try {
-      const pkg = JSON.parse(packageJsonFile.content);
-      const allDeps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
-      const depNames = Object.keys(allDeps);
-      const ignoredDeps = ["typescript", "tailwindcss", "postcss", "eslint", "prettier", "vite", "next", "react", "react-dom"];
-
-      for (const dep of depNames) {
-        if (ignoredDeps.some(ignored => dep.includes(ignored))) continue;
-
-        let isUsed = false;
-        for (const file of codeFiles) {
-          if (file.content.includes(dep)) {
-            isUsed = true;
-            break;
-          }
-        }
-
-        if (!isUsed) {
-          issues.push({
-            category: "zombie_dependency",
-            severity: "medium",
-            risk_level: "verify",
-            title: `Potentially Unused Dependency: ${dep}`,
-            description: `The package '${dep}' is listed in package.json but doesn't appear to be imported in the scanned code files.`,
-            file_path: packageJsonFile.path,
-            start_line: null,
-            end_line: null,
-            code_snippet: `"${dep}": "${allDeps[dep]}"`,
-            suggested_fix: `npm uninstall ${dep}`,
-            ai_explanation: "Static analysis detected this dependency is declared but never imported. Verify it isn't used implicitly before removing."
-          });
-          healthScore -= 5;
-        }
-      }
-    } catch(e) {
-      // Ignore parse errors in fallback
-    }
-  }
-
-  // 2. Scan code files for dead code / risky patterns
-  for (const file of codeFiles) {
-    if (file.path.endsWith("package.json")) continue;
-
-    const lines = file.content.split('\n');
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-
-      // Check for leftover console.logs
-      if (line.includes('console.log(')) {
-        issues.push({
-          category: "dead_code",
-          severity: "low",
-          risk_level: "safe",
-          title: "Leftover Debug Code (console.log)",
-          description: "Found a console.log statement that should be removed before production.",
-          file_path: file.path,
-          start_line: i + 1,
-          end_line: i + 1,
-          code_snippet: line.trim(),
-          suggested_fix: "Remove this line.",
-          ai_explanation: "Static analysis found a console.log, which is typically used for debugging and cluttering production output."
-        });
-        healthScore -= 1;
-      }
-
-      // Check for TODOs
-      if (line.includes('TODO:') || line.includes('FIXME:')) {
-        issues.push({
-          category: "risky_pattern",
-          severity: "low",
-          risk_level: "verify",
-          title: "Unresolved TODO/FIXME",
-          description: "Found an unresolved developer note in the code.",
-          file_path: file.path,
-          start_line: i + 1,
-          end_line: i + 1,
-          code_snippet: line.trim(),
-          suggested_fix: "Address the TODO and remove the comment.",
-          ai_explanation: "Developer notes often indicate incomplete or fragile code that needs review."
-        });
-        healthScore -= 1;
-      }
-    }
-  }
-
-  healthScore = Math.max(0, Math.min(100, healthScore));
-
-  return {
-    health_score: healthScore,
-    dead_code_score: healthScore,
-    dependency_score: healthScore,
-    complexity_score: 90,
-    duplication_score: 90,
-    documentation_score: 80,
-    ai_summary: `Generated via Static Analysis Fallback (AI was temporarily unavailable). Found ${issues.length} potential issues in your repository.`,
-    issues,
-    deletion_plan: {
-      phases: [
-        {
-          name: "Static Cleanup",
-          badge: "safe",
-          steps: issues.map((i, idx) => ({ title: `Fix issue #${idx+1}`, rationale: i.title }))
-        }
-      ]
-    }
-  };
-}
-
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
@@ -383,9 +267,15 @@ Respond ONLY with valid JSON.`
       analysis = AnalysisResultSchema.parse(parsed)
 
     } catch (aiError) {
-      console.warn("AI analysis failed, triggering static fallback:", aiError)
-      // TRIGGERS NORMAL CHECKING FALLBACK IF AI FAILS!
-      analysis = runStaticAnalysisFallback(codeFiles);
+      console.warn("AI analysis failed:", aiError)
+      
+      // Update report status to failed so it doesn't stay stuck "analyzing" forever
+      await supabase
+        .from("analysis_reports")
+        .update({ status: "failed" })
+        .eq("id", report.id)
+
+      throw new Error("AI failed to generate a valid report. Please try again.")
     }
 
     // Update report with results
