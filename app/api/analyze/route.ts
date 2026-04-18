@@ -290,6 +290,31 @@ Be ruthless. Find actual issues and score them according to the rubric.`
       const parsed = JSON.parse(jsonMatch[0])
       analysis = AnalysisResultSchema.parse(parsed)
 
+      // ==========================================
+      // NEW: MANUALLY CALCULATE ACCURATE SCORES
+      // ==========================================
+      let calculatedHealth = 100;
+      let deadCodeCount = 0;
+      let zombieCount = 0;
+
+      analysis.issues.forEach((issue: any) => {
+        // 1. Health Score Deductions based on severity
+        if (issue.severity === "critical") calculatedHealth -= 10;
+        else if (issue.severity === "high") calculatedHealth -= 5;
+        else if (issue.severity === "medium") calculatedHealth -= 2;
+        else if (issue.severity === "low") calculatedHealth -= 1;
+
+        // 2. Count specific categories for sub-scores
+        if (issue.category === "dead_code") deadCodeCount++;
+        if (issue.category === "zombie_dependency") zombieCount++;
+      });
+
+      // Override the AI's guessed scores with the actual math (keeping it between 0 and 100)
+      analysis.health_score = Math.max(0, Math.min(100, calculatedHealth));
+      analysis.dead_code_score = Math.max(0, 100 - (deadCodeCount * 5));
+      analysis.dependency_score = Math.max(0, 100 - (zombieCount * 10));
+      // ==========================================
+
     } catch (aiError) {
       console.warn("AI analysis failed:", aiError)
       
