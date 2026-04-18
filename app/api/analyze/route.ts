@@ -197,8 +197,16 @@ export async function POST(request: Request) {
       .map(f => `--- ${f.path} ---\n${f.content.slice(0, 2500)}`)
       .join("\n\n")
 
-    const systemPrompt = `You are an expert code analyst. You analyze repositories for dead code, unused dependencies, and code quality issues.
-You MUST respond with valid JSON matching this exact structure:
+    const systemPrompt = `You are a strict, expert code analyst. You analyze repositories for dead code, unused dependencies, and code quality issues.
+
+CRITICAL GRADING RUBRIC:
+- Start all scores at 100.
+- health_score: Deduct 10 points for every "critical" issue, 5 for "high", 2 for "medium", 1 for "low".
+- dead_code_score: Deduct 5 points for every dead code snippet found.
+- dependency_score: Deduct 10 points for every zombie dependency.
+- If the code is perfect, give 100. If it is terrible, give a low score (e.g., 20-40). Do NOT default to 75. Calculate it based on the exact issues you find.
+
+You MUST respond ONLY with valid JSON matching this exact structure:
 {
   "health_score": number (0-100),
   "dead_code_score": number (0-100),
@@ -240,13 +248,14 @@ Repository: ${repo.full_name}
 Language: ${repo.language || "Unknown"}
 FILES:
 ${codeContext}
+
 Focus on: Unused functions, dependencies in package.json, dead paths, duplicates, risky patterns.
-Respond ONLY with valid JSON.`
+Be ruthless. Find actual issues and score them according to the rubric.`
 
     let analysis;
 
     try {
-      // Use Puter's Native REST API endpoint. No SDK required!
+      // Use Puter's Native REST API endpoint with JSON mode enabled
       const aiResponse = await fetch("https://api.puter.com/puterai/openai/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -254,12 +263,13 @@ Respond ONLY with valid JSON.`
           "Authorization": `Bearer ${process.env.PUTER_AUTH_TOKEN}`
         },
         body: JSON.stringify({
-          model: "gpt-4o-mini", // Using a stable model. You can change this back to 'gpt-5.4-nano' if it exists on your account
+          model: "gpt-5.4-mini",
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt }
           ],
-          temperature: 0.2
+          temperature: 0.3, // Slightly higher so it varies more
+          response_format: { type: "json_object" } // Forces the AI to return clean JSON
         })
       });
 
