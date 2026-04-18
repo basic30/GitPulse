@@ -1,8 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 import { z } from "zod"
-// FIXED IMPORT: Using the CommonJS init for Node.js/Vercel server environments
-import { init } from "@heyputer/puter.js/src/init.cjs"
 
 const IssueSchema = z.object({
   category: z.enum(["dead_code", "zombie_dependency", "unused_import", "duplicate", "risky_pattern"]),
@@ -105,9 +103,6 @@ const CONFIG_FILES = [
 
 export async function POST(request: Request) {
   try {
-    // FIXED: Initialize Puter for the server environment using your auth token
-    const puter = init(process.env.PUTER_AUTH_TOKEN)
-
     const supabase = await createClient()
     
     const { data: { user } } = await supabase.auth.getUser()
@@ -251,17 +246,32 @@ Respond ONLY with valid JSON.`
     let analysis;
 
     try {
-      // FIXED: Attempt AI Analysis using the server-initialized puter instance
-      const chatResponse = await puter.chat(
-        systemPrompt + "\n\n" + userPrompt, 
-        { model: "gpt-4o-mini" } // Recommended fallback if gpt-5.4-nano throws an invalid model error
-      );
+      // Use Puter's Native REST API endpoint. No SDK required!
+      const aiResponse = await fetch("https://api.puter.com/puterai/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.PUTER_AUTH_TOKEN}`
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini", // Using a stable model. You can change this back to 'gpt-5.4-nano' if it exists on your account
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt }
+          ],
+          temperature: 0.2
+        })
+      });
 
-      // Handle the puter response structure gracefully
-      const responseText = typeof chatResponse === 'string' 
-        ? chatResponse 
-        : (chatResponse as any)?.message?.content || JSON.stringify(chatResponse);
+      if (!aiResponse.ok) {
+        const errText = await aiResponse.text();
+        throw new Error(`Puter API returned ${aiResponse.status}: ${errText}`);
+      }
 
+      const data = await aiResponse.json();
+      const responseText = data.choices[0]?.message?.content || "";
+
+      // Extract and Parse JSON
       const jsonMatch = responseText.match(/\{[\s\S]*\}/)
       if (!jsonMatch) {
         throw new Error("No JSON found in response")
