@@ -268,7 +268,8 @@ Be ruthless. Find actual issues and score them according to the rubric.`
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt }
           ],
-          temperature: 0.3, // Slightly higher so it varies more
+          temperature: 0.0, 
+          seed: 12345, 
           response_format: { type: "json_object" } // Forces the AI to return clean JSON
         })
       });
