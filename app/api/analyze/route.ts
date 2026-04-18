@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 import { z } from "zod"
-import Groq from "groq-sdk" // Imported Groq
+import { puter } from '@heyputer/puter.js'
 
 const IssueSchema = z.object({
   category: z.enum(["dead_code", "zombie_dependency", "unused_import", "duplicate", "risky_pattern"]),
@@ -102,6 +102,122 @@ const CONFIG_FILES = [
   "pom.xml", "build.gradle", "Gemfile", "composer.json"
 ]
 
+// --- FALLBACK CHECKER (Runs if AI fails) ---
+function runStaticAnalysisFallback(codeFiles: { path: string; content: string }[]) {
+  const issues: any[] = [];
+  let healthScore = 95;
+
+  // 1. Check for Package.json to find Zombie Dependencies
+  const packageJsonFile = codeFiles.find(f => f.path.endsWith("package.json"));
+  if (packageJsonFile) {
+    try {
+      const pkg = JSON.parse(packageJsonFile.content);
+      const allDeps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
+      const depNames = Object.keys(allDeps);
+      const ignoredDeps = ["typescript", "tailwindcss", "postcss", "eslint", "prettier", "vite", "next", "react", "react-dom"];
+
+      for (const dep of depNames) {
+        if (ignoredDeps.some(ignored => dep.includes(ignored))) continue;
+
+        let isUsed = false;
+        for (const file of codeFiles) {
+          if (file.content.includes(dep)) {
+            isUsed = true;
+            break;
+          }
+        }
+
+        if (!isUsed) {
+          issues.push({
+            category: "zombie_dependency",
+            severity: "medium",
+            risk_level: "verify",
+            title: `Potentially Unused Dependency: ${dep}`,
+            description: `The package '${dep}' is listed in package.json but doesn't appear to be imported in the scanned code files.`,
+            file_path: packageJsonFile.path,
+            start_line: null,
+            end_line: null,
+            code_snippet: `"${dep}": "${allDeps[dep]}"`,
+            suggested_fix: `npm uninstall ${dep}`,
+            ai_explanation: "Static analysis detected this dependency is declared but never imported. Verify it isn't used implicitly before removing."
+          });
+          healthScore -= 5;
+        }
+      }
+    } catch(e) {
+      // Ignore parse errors in fallback
+    }
+  }
+
+  // 2. Scan code files for dead code / risky patterns
+  for (const file of codeFiles) {
+    if (file.path.endsWith("package.json")) continue;
+
+    const lines = file.content.split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      // Check for leftover console.logs
+      if (line.includes('console.log(')) {
+        issues.push({
+          category: "dead_code",
+          severity: "low",
+          risk_level: "safe",
+          title: "Leftover Debug Code (console.log)",
+          description: "Found a console.log statement that should be removed before production.",
+          file_path: file.path,
+          start_line: i + 1,
+          end_line: i + 1,
+          code_snippet: line.trim(),
+          suggested_fix: "Remove this line.",
+          ai_explanation: "Static analysis found a console.log, which is typically used for debugging and cluttering production output."
+        });
+        healthScore -= 1;
+      }
+
+      // Check for TODOs
+      if (line.includes('TODO:') || line.includes('FIXME:')) {
+        issues.push({
+          category: "risky_pattern",
+          severity: "low",
+          risk_level: "verify",
+          title: "Unresolved TODO/FIXME",
+          description: "Found an unresolved developer note in the code.",
+          file_path: file.path,
+          start_line: i + 1,
+          end_line: i + 1,
+          code_snippet: line.trim(),
+          suggested_fix: "Address the TODO and remove the comment.",
+          ai_explanation: "Developer notes often indicate incomplete or fragile code that needs review."
+        });
+        healthScore -= 1;
+      }
+    }
+  }
+
+  healthScore = Math.max(0, Math.min(100, healthScore));
+
+  return {
+    health_score: healthScore,
+    dead_code_score: healthScore,
+    dependency_score: healthScore,
+    complexity_score: 90,
+    duplication_score: 90,
+    documentation_score: 80,
+    ai_summary: `Generated via Static Analysis Fallback (AI was temporarily unavailable). Found ${issues.length} potential issues in your repository.`,
+    issues,
+    deletion_plan: {
+      phases: [
+        {
+          name: "Static Cleanup",
+          badge: "safe",
+          steps: issues.map((i, idx) => ({ title: `Fix issue #${idx+1}`, rationale: i.title }))
+        }
+      ]
+    }
+  };
+}
+
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
@@ -163,20 +279,16 @@ export async function POST(request: Request) {
     const [owner, repoName] = repo.full_name.split("/")
     const rootContents = await fetchRepoContents(githubToken, owner, repoName)
 
-    // Collect code files (limit to important files for analysis)
     const codeFiles: { path: string; content: string }[] = []
     const filesToCheck: GitHubFile[] = [...rootContents]
     const checkedDirs = new Set<string>()
 
-    // TOKEN SAVER: Ignore massive lockfiles and generated files
     const IGNORE_FILES = ["package-lock.json", "yarn.lock", "pnpm-lock.yaml", "next-env.d.ts", "components.json"]
 
-    // TOKEN SAVER: Limit to max 15 files instead of 50
     while (filesToCheck.length > 0 && codeFiles.length < 15) {
       const file = filesToCheck.shift()!
       
       if (file.type === "dir" && !checkedDirs.has(file.path)) {
-        // Skip node_modules, .git, etc.
         if (["node_modules", ".git", "dist", "build", "__pycache__", "venv", ".next"].includes(file.name)) {
           continue
         }
@@ -184,7 +296,6 @@ export async function POST(request: Request) {
         const dirContents = await fetchRepoContents(githubToken, owner, repoName, file.path)
         filesToCheck.push(...dirContents)
       } else if (file.type === "file") {
-        // TOKEN SAVER: Skip ignored files
         if (IGNORE_FILES.includes(file.name)) continue;
 
         const isCodeFile = CODE_EXTENSIONS.some(ext => file.name.endsWith(ext))
@@ -192,7 +303,6 @@ export async function POST(request: Request) {
         
         if (isCodeFile || isConfigFile) {
           const content = await fetchFileContent(githubToken, owner, repoName, file.path)
-          // TOKEN SAVER: Only fetch files smaller than 20,000 chars instead of 50,000
           if (content && content.length < 20000) {
             codeFiles.push({ path: file.path, content })
           }
@@ -200,9 +310,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // Build prompt for AI analysis
     const codeContext = codeFiles
-      // TOKEN SAVER: Slice at 2500 characters instead of 5000 per file
       .map(f => `--- ${f.path} ---\n${f.content.slice(0, 2500)}`)
       .join("\n\n")
 
@@ -245,59 +353,39 @@ You MUST respond with valid JSON matching this exact structure:
 }`
 
     const userPrompt = `Analyze this repository for dead code, unused dependencies, and code quality issues.
-
 Repository: ${repo.full_name}
 Language: ${repo.language || "Unknown"}
-
 FILES:
 ${codeContext}
+Focus on: Unused functions, dependencies in package.json, dead paths, duplicates, risky patterns.
+Respond ONLY with valid JSON.`
 
-Focus on:
-- Unused functions, variables, and exports
-- Unused dependencies in package.json/requirements.txt
-- Dead code paths
-- Duplicate code
-- Risky patterns
+    let analysis;
 
-Be specific about file paths and line numbers. Provide actionable fixes.
-Respond ONLY with valid JSON matching the structure I specified.`
-
-
-    // Initialize Groq
-    const groq = new Groq({
-      apiKey: process.env.GROQ_API_KEY
-    });
-
-    // Call Groq API
-    const chatCompletion = await groq.chat.completions.create({
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
-      ],
-      model: "qwen/qwen3-32b",
-      temperature: 0.6,
-      max_completion_tokens: 3000,
-      top_p: 0.95,
-      stream: false, // Must be false so we can parse the entire JSON at once
-      reasoning_effort: "default",
-    });
-
-    const responseText = chatCompletion.choices[0]?.message?.content || "";
-
-    // Parse the JSON response
-    let analysis
     try {
-      // Try to extract JSON from the response
+      // Attempt AI Analysis via puter.js
+      const chatResponse = await puter.ai.chat(
+        systemPrompt + "\n\n" + userPrompt, 
+        { model: "gpt-5.4-nano" }
+      );
+
+      // Handle the puter response structure
+      const responseText = typeof chatResponse === 'string' 
+        ? chatResponse 
+        : (chatResponse as any)?.message || JSON.stringify(chatResponse);
+
       const jsonMatch = responseText.match(/\{[\s\S]*\}/)
       if (!jsonMatch) {
         throw new Error("No JSON found in response")
       }
+      
       const parsed = JSON.parse(jsonMatch[0])
       analysis = AnalysisResultSchema.parse(parsed)
-    } catch (parseError) {
-      console.error("Failed to parse AI response:", parseError)
-      console.error("Raw response:", responseText.slice(0, 500))
-      throw new Error("Failed to parse AI analysis results")
+
+    } catch (aiError) {
+      console.warn("AI analysis failed, triggering static fallback:", aiError)
+      // TRIGGERS NORMAL CHECKING FALLBACK IF AI FAILS!
+      analysis = runStaticAnalysisFallback(codeFiles);
     }
 
     // Update report with results
@@ -311,11 +399,11 @@ Respond ONLY with valid JSON matching the structure I specified.`
         duplication_score: analysis.duplication_score,
         documentation_score: analysis.documentation_score,
         total_issues: analysis.issues.length,
-        lines_removable: analysis.issues.reduce((acc, i) => 
+        lines_removable: analysis.issues.reduce((acc: number, i: any) => 
           acc + (i.end_line && i.start_line ? i.end_line - i.start_line + 1 : 0), 0
         ),
-        zombie_dependencies: analysis.issues.filter(i => i.category === "zombie_dependency").length,
-        files_affected: new Set(analysis.issues.map(i => i.file_path)).size,
+        zombie_dependencies: analysis.issues.filter((i: any) => i.category === "zombie_dependency").length,
+        files_affected: new Set(analysis.issues.map((i: any) => i.file_path)).size,
         status: "completed",
         ai_summary: analysis.ai_summary,
         deletion_plan: analysis.deletion_plan,
@@ -329,7 +417,7 @@ Respond ONLY with valid JSON matching the structure I specified.`
 
     // Insert issues
     if (analysis.issues.length > 0) {
-      const issuesToInsert = analysis.issues.map(issue => ({
+      const issuesToInsert = analysis.issues.map((issue: any) => ({
         report_id: report.id,
         user_id: user.id,
         ...issue,
@@ -360,19 +448,8 @@ Respond ONLY with valid JSON matching the structure I specified.`
     })
   } catch (error) {
     console.error("Analysis error:", error)
-    
-    const errorMessage = error instanceof Error ? error.message : "Unknown error"
-    
-    // Check for specific error types
-    if (errorMessage.includes("API key") || errorMessage.includes("GROQ")) {
-      return NextResponse.json(
-        { error: "AI API key not configured. Please add GROQ_API_KEY to environment variables." },
-        { status: 500 }
-      )
-    }
-    
     return NextResponse.json(
-      { error: `Analysis failed: ${errorMessage}` },
+      { error: `Analysis failed: ${error instanceof Error ? error.message : "Unknown error"}` },
       { status: 500 }
     )
   }

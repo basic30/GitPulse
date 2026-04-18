@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.63",
+    "@heyputer/puter.js": "^2.2.15",
     "@hookform/resolvers": "^3.9.1",
     "@openrouter/ai-sdk-provider": "^2.6.0",
     "@radix-ui/react-accordion": "1.2.12",
