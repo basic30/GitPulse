@@ -1,11 +1,37 @@
 "use client"
 
+import { useFormStatus } from "react-dom"
 import { motion } from "framer-motion"
 import Image from "next/image"
-import { Github, ArrowLeft } from "lucide-react"
+import { Github, ArrowLeft, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { signInWithGitHub } from "@/lib/auth/actions"
+
+function SubmitButton() {
+  const { pending } = useFormStatus()
+  
+  return (
+    <Button
+      type="submit"
+      disabled={pending}
+      size="lg"
+      className="w-full gap-3 bg-[#24292e] text-white hover:bg-[#24292e]/90 relative overflow-hidden transition-all duration-300 shadow-md hover:shadow-lg active:scale-95"
+    >
+      {pending ? (
+        <>
+          <Loader2 className="h-5 w-5 animate-spin text-white" />
+          <span>Connecting to GitHub...</span>
+        </>
+      ) : (
+        <>
+          <Github className="h-5 w-5" />
+          <span>Continue with GitHub</span>
+        </>
+      )}
+    </Button>
+  )
+}
 
 export default function LoginPage() {
   return (
@@ -52,14 +78,7 @@ export default function LoginPage() {
 
           {/* GitHub Login Button */}
           <form action={signInWithGitHub}>
-            <Button
-              type="submit"
-              size="lg"
-              className="w-full gap-3 bg-[#24292e] text-white hover:bg-[#24292e]/90"
-            >
-              <Github className="h-5 w-5" />
-              Continue with GitHub
-            </Button>
+            <SubmitButton />
           </form>
 
           {/* Info */}

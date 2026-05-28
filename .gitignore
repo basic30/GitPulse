@@ -1,16 +1,53 @@
-# v0 sandbox internal files
+# GitPulse Version Control Ignore Rules
+
+# Next.js build and cache
+.next/
+out/
+build/
+dist/
+
+# Dependencies
+node_modules/
+jspm_packages/
+web_modules/
+
+# Lock files - we keep package-lock.json for npm
+yarn.lock
+pnpm-lock.yaml
+bun.lockb
+
+# Local environment variables and secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# System & IDE files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Sandbox internal files
 __v0_runtime_loader.js
 __v0_devtools.tsx
 __v0_jsx-dev-runtime.ts
 .snowflake/
 .v0-trash/
 .vercel/
+.antigravitycli/
 next.user-config.*
-
-# Environment variables
-.env*.local
-
-# Common ignores
-node_modules
-.next/
-.DS_Store

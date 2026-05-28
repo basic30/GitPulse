@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { HealthScoreHero } from "@/components/report/health-score-hero"
 import { IssueList } from "@/components/report/issue-list"
 import { DeletionPlan } from "@/components/report/deletion-plan"
+import { MasterPromptFab } from "@/components/report/master-prompt-fab"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 
@@ -306,6 +307,9 @@ export default function ReportPage() {
       <div className="lg:hidden">
         <DeletionPlan steps={deletionSteps} reportId={reportId} />
       </div>
+
+      {/* Floating Action Button for AI Master Prompt */}
+      <MasterPromptFab issues={issuesData} repoFullName={reportData.repoFullName} />
 
       {/* Footer */}
       <footer className="mt-16 border-t border-border py-8 pb-24 lg:pb-8">
