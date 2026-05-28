@@ -31,11 +31,13 @@ export function Footer() {
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>GitPulse Documentation</DialogTitle>
-                  <DialogDescription className="space-y-4 pt-4 text-left">
-                    <p>Welcome to the GitPulse Documentation.</p>
-                    <p><strong>1. Connecting Repositories:</strong> Go to your dashboard and click "Sync GitHub" to pull your latest repositories.</p>
-                    <p><strong>2. Running Analysis:</strong> Click "Analyze" on any repository card to trigger the AI-powered code review.</p>
-                    <p><strong>3. Reviewing Reports:</strong> View detailed health scores, dead code, and zombie dependencies directly in the report viewer.</p>
+                  <DialogDescription asChild>
+                    <div className="space-y-4 pt-4 text-left">
+                      <p>Welcome to the GitPulse Documentation.</p>
+                      <p><strong>1. Connecting Repositories:</strong> Go to your dashboard and click "Sync GitHub" to pull your latest repositories.</p>
+                      <p><strong>2. Running Analysis:</strong> Click "Analyze" on any repository card to trigger the AI-powered code review.</p>
+                      <p><strong>3. Reviewing Reports:</strong> View detailed health scores, dead code, and zombie dependencies directly in the report viewer.</p>
+                    </div>
                   </DialogDescription>
                 </DialogHeader>
               </DialogContent>
@@ -49,11 +51,13 @@ export function Footer() {
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Privacy Policy</DialogTitle>
-                  <DialogDescription className="space-y-4 pt-4 text-left">
-                    <p>Your privacy is critically important to us.</p>
-                    <p><strong>Data Collection:</strong> We only collect repository metadata and strictly necessary code snippets for analysis purposes.</p>
-                    <p><strong>Data Storage:</strong> Source code is NOT stored permanently on our servers. Analysis is done in-memory and immediately discarded.</p>
-                    <p><strong>Third Parties:</strong> We do not share your private codebase with any third parties except the secure AI models required for the analysis.</p>
+                  <DialogDescription asChild>
+                    <div className="space-y-4 pt-4 text-left">
+                      <p>Your privacy is critically important to us.</p>
+                      <p><strong>Data Collection:</strong> We only collect repository metadata and strictly necessary code snippets for analysis purposes.</p>
+                      <p><strong>Data Storage:</strong> Source code is NOT stored permanently on our servers. Analysis is done in-memory and immediately discarded.</p>
+                      <p><strong>Third Parties:</strong> We do not share your private codebase with any third parties except the secure AI models required for the analysis.</p>
+                    </div>
                   </DialogDescription>
                 </DialogHeader>
               </DialogContent>
@@ -67,11 +71,13 @@ export function Footer() {
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Terms of Service</DialogTitle>
-                  <DialogDescription className="space-y-4 pt-4 text-left">
-                    <p>By using GitPulse, you agree to the following terms:</p>
-                    <p><strong>1. Usage:</strong> GitPulse is provided "as is" for code analysis purposes. You must have the legal right to analyze the repositories you connect.</p>
-                    <p><strong>2. API Limits:</strong> Free tier users are subject to rate limiting and repository size restrictions to prevent abuse.</p>
-                    <p><strong>3. Liability:</strong> GitPulse is not liable for any code deleted or modified based on the suggestions provided by the AI report.</p>
+                  <DialogDescription asChild>
+                    <div className="space-y-4 pt-4 text-left">
+                      <p>By using GitPulse, you agree to the following terms:</p>
+                      <p><strong>1. Usage:</strong> GitPulse is provided "as is" for code analysis purposes. You must have the legal right to analyze the repositories you connect.</p>
+                      <p><strong>2. API Limits:</strong> Free tier users are subject to rate limiting and repository size restrictions to prevent abuse.</p>
+                      <p><strong>3. Liability:</strong> GitPulse is not liable for any code deleted or modified based on the suggestions provided by the AI report.</p>
+                    </div>
                   </DialogDescription>
                 </DialogHeader>
               </DialogContent>
