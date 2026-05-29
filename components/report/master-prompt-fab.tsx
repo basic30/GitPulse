@@ -51,7 +51,7 @@ Explanation: ${issue.aiExplanation}${codeContext}${fixContext}
 ----------------------------------------`
     }).join("\n\n")
 
-    return `You are an expert AI software refactoring assistant. 
+    return `You are an expert AI software refactoring assistant and a senior software architect. 
 I have analyzed my repository "${repoFullName}" using GitPulse, which has detected code health issues including dead code, zombie dependencies, unused imports, duplicate code, and risky patterns.
 
 Please act as an autonomous refactoring engine and write the exact code edits required to clean up these flagged issues based on the following audit report:
@@ -63,12 +63,27 @@ Total Issues Flagged: ${issues.length}
 ${issuesList}
 ========================================================
 
-INSTRUCTIONS:
-1. Carefully review each issue in the report.
-2. For DEAD CODE, unused imports, or zombie dependencies, safely remove the unused elements. Verify that no remaining routes or files depend on them.
-3. For DUPLICATE code, extract the shared logic into a single reusable utility function or component to maximize DRY principles.
-4. For RISKY PATTERNS, write a safer, more robust implementation matching the suggested fix.
-5. Provide a summary of the edits made, listing the exact lines of code successfully deleted or refactored.
+SYSTEMATIC REFACTORING PROTOCOL & INSTRUCTIONS:
+
+1. COMPREHENSIVE DEPENDENCY ANALYSIS
+   - Carefully review each issue in the report.
+   - Before making any code deletion or modification, trace all references of the target code. Ensure that removing it will not cause syntax errors, runtime failures, or broken imports in any unflagged files.
+   - If a dead function is imported elsewhere, proceed to safely remove those imports and their references as well.
+
+2. SPECIFIC ACTION PATTERNS
+   - **DEAD CODE & UNUSED IMPORTS**: Delete the unused functions, variables, classes, or imports. Clean up the surrounding code so no trailing comma, broken bracket, or unused helper is left behind.
+   - **ZOMBIE DEPENDENCIES**: Safely prune them from \`package.json\`, \`requirements.txt\`, or corresponding dependency manifests.
+   - **DUPLICATE CODE**: Refactor the shared logic into a single, highly reusable utility function or component. Place it in a shared directory (e.g., \`lib/utils\` or \`components/ui\`) and update all caller locations to reference the unified implementation.
+   - **RISKY PATTERNS**: Rewrite the unsafe patterns using secure, robust modern equivalents (e.g., replacing loose equality, adding proper error boundary catches, or resolving race conditions).
+
+3. OUTPUT FORMATTING
+   - For each file modified, provide a clear explanation of the refactoring strategy.
+   - Output the exact modifications. Use **unified diff code blocks** (\`\`\`diff ... \`\`\`) showing precisely what to delete (\`-\'\) and what to insert (\`+\'\), or provide the fully updated file content if the file is small.
+   - Ensure all code conforms strictly to the project's styling and typescript rules.
+
+4. POST-REFACTOR VERIFICATION
+   - Provide a final summary of total lines removed, files simplified, and clean-up achievements.
+   - Walk through any potential risks or manual testing verification steps that the developer should run to verify the workspace's absolute health.
 `
   }
 

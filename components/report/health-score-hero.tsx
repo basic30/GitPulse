@@ -21,30 +21,35 @@ interface HealthScoreHeroProps {
 }
 
 export function HealthScoreHero({ report }: HealthScoreHeroProps) {
+  // Calculate mathematically correct score based on subScores
+  const calculatedHealthScore = Math.round(
+    report.subScores.reduce((acc, sub) => acc + (sub.score * sub.weight) / 100, 0)
+  )
+
   // Framer Motion spring animation for score count-up
   const motionValue = useMotionValue(0)
   const springValue = useSpring(motionValue, { stiffness: 100, damping: 30 })
   const displayScore = useTransform(springValue, (val) => Math.round(val))
 
   useEffect(() => {
-    motionValue.set(report.healthScore)
-  }, [report.healthScore, motionValue])
+    motionValue.set(calculatedHealthScore)
+  }, [calculatedHealthScore, motionValue])
 
   const scoreColor =
-    report.healthScore >= 70
+    calculatedHealthScore >= 70
       ? "#10B981"
-      : report.healthScore >= 40
+      : calculatedHealthScore >= 40
       ? "#F59E0B"
       : "#EF4444"
 
   const scoreLabel =
-    report.healthScore >= 70
+    calculatedHealthScore >= 70
       ? "Healthy"
-      : report.healthScore >= 40
+      : calculatedHealthScore >= 40
       ? "Needs Attention"
       : "Critical"
 
-  const chartData = [{ value: report.healthScore, fill: scoreColor }]
+  const chartData = [{ value: calculatedHealthScore, fill: scoreColor }]
 
   const stats = [
     {

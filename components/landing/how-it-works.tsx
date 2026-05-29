@@ -55,7 +55,7 @@ export function HowItWorks() {
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.5, delay: index * 0.15 }}
             >
-              <div className="group relative h-full rounded-xl border border-border bg-card/50 p-8 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5">
+              <div className="group relative h-full rounded-xl border border-border bg-card/50 p-5 sm:p-8 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5">
                 {/* Step Number Badge */}
                 <div className="absolute -top-3 left-6 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">
                   {step.number}

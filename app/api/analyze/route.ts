@@ -311,9 +311,21 @@ Be ruthless. Find actual issues and score them according to the rubric.`
       });
 
       // Override the AI's guessed scores with the actual math (keeping it between 0 and 100)
-      analysis.health_score = Math.max(0, Math.min(100, calculatedHealth));
-      analysis.dead_code_score = Math.max(0, 100 - (deadCodeCount * 5));
-      analysis.dependency_score = Math.max(0, 100 - (zombieCount * 10));
+      const deadCodeScore = Math.max(0, 100 - (deadCodeCount * 5));
+      const dependencyScore = Math.max(0, 100 - (zombieCount * 10));
+      
+      analysis.dead_code_score = deadCodeScore;
+      analysis.dependency_score = dependencyScore;
+      
+      // Calculate overall health score as the weighted average of the 5 subscores:
+      // Dead Code (25%), Dependency (25%), Complexity (20%), Duplication (15%), Documentation (15%)
+      analysis.health_score = Math.round(
+        (deadCodeScore * 0.25) +
+        (dependencyScore * 0.25) +
+        (analysis.complexity_score * 0.20) +
+        (analysis.duplication_score * 0.15) +
+        (analysis.documentation_score * 0.15)
+      );
       // ==========================================
 
     } catch (aiError) {

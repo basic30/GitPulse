@@ -86,7 +86,7 @@ export function PricingSection() {
               className={`relative ${plan.popular ? "md:-mt-4 md:mb-4" : ""}`}
             >
               <div
-                className={`relative h-full rounded-xl border p-8 transition-all duration-300 hover:shadow-lg ${
+                className={`relative h-full rounded-xl border p-5 sm:p-8 transition-all duration-300 hover:shadow-lg ${
                   plan.popular
                     ? "border-primary bg-card shadow-lg shadow-primary/10"
                     : "border-border bg-card/50 hover:border-primary/50"

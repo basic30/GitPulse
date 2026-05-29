@@ -107,17 +107,17 @@ export function ComparisonTable() {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="overflow-hidden rounded-xl border border-border"
         >
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <div className="overflow-x-auto -mx-4 sm:mx-0">
+            <table className="w-full min-w-[480px]">
               <thead>
                 <tr className="border-b border-border bg-card/50">
-                  <th className="px-6 py-4 text-left text-sm font-semibold">
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-semibold">
                     Tool
                   </th>
                   {columns.map((col) => (
                     <th
                       key={col.key}
-                      className="px-4 py-4 text-center text-sm font-semibold"
+                      className="px-2 sm:px-4 py-3 sm:py-4 text-center text-xs sm:text-sm font-semibold"
                     >
                       {col.label}
                     </th>
@@ -137,22 +137,22 @@ export function ComparisonTable() {
                         : "bg-card/30"
                     }`}
                   >
-                    <td className="px-6 py-4">
+                    <td className="px-3 sm:px-6 py-3 sm:py-4">
                       <span
-                        className={`font-medium ${
+                        className={`font-medium text-sm sm:text-base ${
                           tool.highlight ? "text-primary" : ""
                         }`}
                       >
                         {tool.name}
                       </span>
                       {tool.highlight && (
-                        <span className="ml-2 rounded-full bg-primary/20 px-2 py-0.5 text-xs font-medium text-primary">
+                        <span className="ml-1.5 sm:ml-2 rounded-full bg-primary/20 px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs font-medium text-primary">
                           Best
                         </span>
                       )}
                     </td>
                     {columns.map((col) => (
-                      <td key={col.key} className="px-4 py-4">
+                      <td key={col.key} className="px-2 sm:px-4 py-3 sm:py-4">
                         <div className="flex justify-center">
                           <StatusIcon
                             value={tool[col.key as keyof typeof tool] as boolean | string}
