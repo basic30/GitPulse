@@ -74,6 +74,8 @@ export interface SubScore {
   name: string
   score: number
   weight: number
+  percentage?: number
+  description?: string
 }
 
 export interface DeletionStep {

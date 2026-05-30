@@ -134,6 +134,14 @@ export default function ReportPage() {
   const { report, issues } = data
 
   // Transform to component-compatible format
+  // Calculate dead code percentage: score is 0-100 where 100 = no dead code.
+  // So dead code percentage = 100 - score. E.g., score 75 → 25% dead code.
+  const deadCodePct = Math.round(100 - (report.dead_code_score ?? 100))
+  const dependencyPct = Math.round(100 - (report.dependency_score ?? 100))
+  const complexityPct = Math.round(100 - (report.complexity_score ?? 100))
+  const duplicationPct = Math.round(100 - (report.duplication_score ?? 100))
+  const documentationPct = Math.round(100 - (report.documentation_score ?? 100))
+
   const reportData = {
     id: report.id,
     analysisId: report.id,
@@ -142,11 +150,11 @@ export default function ReportPage() {
     fileCount: report.files_affected || 0,
     healthScore: report.health_score,
     subScores: [
-      { name: "Dead Code Detection", score: report.dead_code_score ?? 0, weight: 25 },
-      { name: "Dependency Health", score: report.dependency_score ?? 0, weight: 25 },
-      { name: "Code Complexity", score: report.complexity_score ?? 0, weight: 20 },
-      { name: "Duplication", score: report.duplication_score ?? 0, weight: 15 },
-      { name: "Documentation", score: report.documentation_score ?? 0, weight: 15 },
+      { name: "Dead Code", percentage: deadCodePct, score: report.dead_code_score ?? 0, weight: 25, description: "of code is dead / unused" },
+      { name: "Zombie Dependencies", percentage: dependencyPct, score: report.dependency_score ?? 0, weight: 25, description: "of dependencies are unused" },
+      { name: "Code Complexity", percentage: complexityPct, score: report.complexity_score ?? 0, weight: 20, description: "of code has high complexity" },
+      { name: "Duplication", percentage: duplicationPct, score: report.duplication_score ?? 0, weight: 15, description: "of code is duplicated" },
+      { name: "Documentation Gaps", percentage: documentationPct, score: report.documentation_score ?? 0, weight: 15, description: "of code lacks documentation" },
     ],
     issues: [],
     totalIssues: report.total_issues,

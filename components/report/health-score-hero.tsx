@@ -173,50 +173,74 @@ export function HealthScoreHero({ report }: HealthScoreHeroProps) {
             </span>
           </div>
 
-          {/* Sub-scores - bars with animated width */}
+          {/* Sub-scores - percentage-based breakdown */}
           <div className="flex-1 space-y-4">
             <h3 className="text-sm font-medium text-muted-foreground">
               Score Breakdown
             </h3>
-            {report.subScores.map((subScore, index) => (
-              <motion.div
-                key={subScore.name}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="space-y-2"
-              >
-                <div className="flex items-center justify-between text-sm">
-                  <span className="truncate">{subScore.name}</span>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="font-medium tabular-nums">{subScore.score}</span>
-                    <span className="text-xs text-muted-foreground">
-                      /100
-                    </span>
-                    <span className="text-xs text-muted-foreground w-12 text-right">
-                      ({subScore.weight}%)
-                    </span>
+            {report.subScores.map((subScore, index) => {
+              const pct = subScore.percentage ?? Math.round(100 - subScore.score)
+              const desc = subScore.description ?? "affected"
+              // For percentages: lower is better (less dead code = good)
+              const barColor =
+                pct <= 10
+                  ? "#10B981" // green — very clean
+                  : pct <= 30
+                  ? "#F59E0B" // amber — moderate issues
+                  : "#EF4444" // red — significant issues
+              // Score badge color (higher = better, original 0-100 scale)
+              const scoreBadgeColor =
+                subScore.score >= 70
+                  ? "#10B981"
+                  : subScore.score >= 40
+                  ? "#F59E0B"
+                  : "#EF4444"
+              return (
+                <motion.div
+                  key={subScore.name}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="space-y-2"
+                >
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="truncate font-medium">{subScore.name}</span>
+                      <span
+                        className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums"
+                        style={{
+                          backgroundColor: `${scoreBadgeColor}18`,
+                          color: scoreBadgeColor,
+                        }}
+                      >
+                        {subScore.score}/100
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span
+                        className="text-lg font-bold tabular-nums"
+                        style={{ color: barColor }}
+                      >
+                        {pct}%
+                      </span>
+                      <span className="text-[11px] text-muted-foreground max-w-[120px] leading-tight">
+                        {desc}
+                      </span>
+                    </div>
                   </div>
-                </div>
-                {/* Custom progress bar with animated width */}
-                <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${subScore.score}%` }}
-                    transition={{ duration: 0.8, delay: 0.2 + index * 0.1, ease: "easeOut" }}
-                    className="h-full rounded-full"
-                    style={{
-                      backgroundColor:
-                        subScore.score >= 70
-                          ? "#10B981"
-                          : subScore.score >= 40
-                          ? "#F59E0B"
-                          : "#EF4444",
-                    }}
-                  />
-                </div>
-              </motion.div>
-            ))}
+                  {/* Progress bar — fills to the percentage (higher = worse) */}
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${pct}%` }}
+                      transition={{ duration: 0.8, delay: 0.2 + index * 0.1, ease: "easeOut" }}
+                      className="h-full rounded-full"
+                      style={{ backgroundColor: barColor }}
+                    />
+                  </div>
+                </motion.div>
+              )
+            })}
           </div>
         </div>
 
